@@ -40,3 +40,11 @@ Estos 'cambios', los denominaremos **metodos de detección**, entre los cuales d
 ###### RabbitMQ	  
 
 [Instalar RabbitMQ](https://www.rabbitmq.com/download.html)
+
+##### PLAN
+
+- [ ] Armar ejemplos en OpenCV
+- [ ] Armar algoritmos de detección en OpenCV
+- [ ] Conseguir Datasets de Imagenes 
+- [ ] Plantear Arquitectura
+- [ ] Definir que va a tener la Interfaz Web
