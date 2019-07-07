@@ -1,4 +1,4 @@
-package ejemplosOpenCV
+package ejemplosOpenCV;
 
 import org.opencv.imgproc.Imgproc;
 
