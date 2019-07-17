@@ -64,17 +64,15 @@ A continuación se listan APIs de imagenes satelitales a investigar/probar.
   - Utiliza satelites Landsat.
   - API con limite de 1000 peticiones por hora.
 
+##### Mapa
+
+**¿Que debe tener la libreria de mapas?**
+
+- Se debe poder posicionar una imagen sobre una latitud (utilizada para mostrar el resultado).
+- Se debe poder dibujar una figura (KML / GeoJSON) sobre el mapa (sobre la cual se obtendran los resultados).
 
 ##### Arquitectura
 
 ###### RabbitMQ	  
 
 [Instalar RabbitMQ](https://www.rabbitmq.com/download.html)
-
-##### PLAN
-
-- [X] Armar ejemplos en OpenCV
-- [ ] Armar algoritmos de detección en OpenCV
-- [ ] Conseguir Datasets de Imagenes
-- [X] Plantear Arquitectura
-- [X] Definir que va a tener la Interfaz Web
