@@ -1,0 +1,50 @@
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>GeoDiff | Comparing Surface</title>
+    <script src="http://www.openlayers.org/api/OpenLayers.js"></script>
+    <script>
+    map = new OpenLayers.Map("mapdiv");
+    map.addLayer(new OpenLayers.Layer.OSM());
+
+    var lonLat = new OpenLayers.LonLat( 100.75 ,1.4 )
+          .transform(
+            new OpenLayers.Projection("EPSG:4326"), // transform from WGS 1984
+            map.getProjectionObject() // to Spherical Mercator Projection
+          );
+
+    var zoom=16;
+
+    var markers = new OpenLayers.Layer.Markers( "Markers" );
+    map.addLayer(markers);
+
+    markers.addMarker(new OpenLayers.Marker(lonLat));
+
+    map.setCenter (lonLat, zoom);
+  </script>
+</head>
+<body>
+<div class="logo-container">
+    <img th:src="@{~/static/images/planet-earth-svgrepo-com.svg}" alt="">
+    <div class="title-container">
+        <h2>GeoDiff</h2>
+        <span>Comparing surface through time</span>
+    </div>
+</div>
+<div id="mapdiv"></div>
+<div id="menu-options">
+    <ul>
+        <li>
+            <button type="checkbox" name="button"> Deforestación</button>
+        </li>
+        <li>
+            <button type="checkbox" name="button"> Urbanización</button>
+        </li>
+        <li>
+            <button type="checkbox" name="button"> Sequias</button>
+        </li>
+    </ul>
+    <a th:href="@{/new-map}" class="button">Recuperar Datos</a>
+</div>
+</body>
+</html>
