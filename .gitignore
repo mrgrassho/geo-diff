@@ -5,4 +5,4 @@
 target/
 /**/images-test/
 /**/.mvn/
-.DS_Store
+*.DS_Store
