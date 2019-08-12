@@ -1,5 +1,6 @@
 package me.rabrg.nasa.model.earth;
 
+import com.geodiff.dto.Coordinate;
 import com.google.gson.annotations.SerializedName;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
@@ -9,11 +10,13 @@ import java.io.IOException;
 
 public class EarthImage {
 
+    private String id;
     private String date;
     private String url;
     @SerializedName("cloud_score")
     private double cloudScore;
-    private String id;
+    private Coordinate coordinate;
+    private Double dim;
     private byte[] rawImage;
 
     public String getDate() {
@@ -55,5 +58,21 @@ public class EarthImage {
 
     public byte[] getRawImage() {
         return this.rawImage;
+    }
+
+    public Coordinate getCoordinate() {
+        return coordinate;
+    }
+
+    public void setCoordinate(Coordinate coordinate) {
+        this.coordinate = coordinate;
+    }
+
+    public Double getDim() {
+        return dim;
+    }
+
+    public void setDim(Double dim) {
+        this.dim = dim;
     }
 }

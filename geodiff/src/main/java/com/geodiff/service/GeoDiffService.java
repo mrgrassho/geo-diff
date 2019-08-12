@@ -1,8 +1,10 @@
 package com.geodiff.service;
 
+
 import com.geodiff.dto.Coordinate;
 import com.geodiff.dto.GeoException;
-import com.geodiff.model.RawImage;
+import com.google.gson.Gson;
+import com.rabbitmq.client.*;
 import me.rabrg.nasa.NasaApi;
 import me.rabrg.nasa.model.earth.EarthAssets;
 import me.rabrg.nasa.model.earth.EarthImage;
@@ -18,15 +20,20 @@ import java.util.HashMap;
 @Service
 public class GeoDiffService {
 
+    // TODO: Replace constants with configuration file.
     private static final boolean CLOUDSCORE = true;
     private static final Double DIMENSION = 0.025;
     private static final String API_KEY = "6k9ilibCQcusmZl9RRczizWjFC7K0gkviEt2G4Qa";
-    private final DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+    private static final String TASK_QUEUE_NAME = "TASK_QUEUE";;
+    private static final String RESULT_QUEUE_NAME = "RESULT_QUEUE";
 
-    public ArrayList<RawImage> createMap(ArrayList<Coordinate> coordinates, Date beginDate, Date endDate) throws GeoException {
+    private final DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+    private Channel channel;
+    private Gson gson;
+
+    public void createMap(ArrayList<Coordinate> coordinates, Date beginDate, Date endDate) throws GeoException {
         NasaApi nasaApi = new NasaApi(API_KEY);
         try {
-            ArrayList<RawImage> images = new ArrayList<>();
             HashMap<String, ArrayList<EarthImage>> res = new HashMap<>();
             String beginDateStr = (beginDate != null) ? df.format(beginDate): null;
             String endDateStr = (endDate != null) ? df.format(endDate): null;
@@ -40,6 +47,8 @@ public class GeoDiffService {
                     for (EarthAssets.EarthAsset ea: eas.getResults()) {
                         try {
                             EarthImage e = nasaApi.getEarthImage(coord.getLatitude(), coord.getLongitude(), DIMENSION, ea.getDate().split("T")[0], CLOUDSCORE);
+                            e.setCoordinate(coord);
+                            e.setDim(DIMENSION);
                             ei.add(e);
                         } catch (IOException e) {
                             e.printStackTrace();
@@ -51,13 +60,32 @@ public class GeoDiffService {
             // Cargar las imagenes
 
             // TODO: Guardar las imagenes en base
-            System.err.println(res);
-            // Cliente RabbitMQ envia trabajos a la WORK QUEUE
-            return images;
+
+            // Cliente RabbitMQ envia trabajos a la TASK QUEUE
 
         } catch (IOException e) {
             throw new GeoException(e.getMessage());
         }
+    }
+
+    public void initQueue() throws IOException {
+        ConnectionFactory factory = new ConnectionFactory();
+        factory.setHost("localhost");
+        this.channel.queueDeclare(TASK_QUEUE_NAME, true, false, false, null);
+
+    }
+
+
+    public void sendTaskToQueue(EarthImage ei) throws IOException {
+        String m = gson.toJson(ei);
+        channel.basicPublish("", TASK_QUEUE_NAME,
+                    MessageProperties.PERSISTENT_TEXT_PLAIN,
+                    m.getBytes("UTF-8"));
+    }
+
+    public EarthImage getResultFromQueue() throws IOException {
+        GetResponse res = channel.basicGet(RESULT_QUEUE_NAME, true);
+        return gson.fromJson(res.getBody().toString(), EarthImage.class);
     }
 
     //public ArrayList<RawImage> loadImages(ei);
