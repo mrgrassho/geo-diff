@@ -2,7 +2,6 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <title>GeoDiff | Comparing Surface</title>
-    <link rel="stylesheet" href="/css/master.css" th:href="@{/css/master.css}">
     <script src="http://www.openlayers.org/api/OpenLayers.js"></script>
     <script>
     document.addEventListener("DOMContentLoaded", function(event) {
@@ -45,10 +44,7 @@
                 <label for="drought-opt">Drought</label>
             </li>
         </ul>
-        <form id="myform" method="post" enctype='text/plain' th:action="@{/geo/new-map?begin-date=2017-04-01} ">
-            <input name='{"latitude": 29.6, "longitude": 100.75 "' value='"}'/>
-            <a onclick="document.getElementById('myform').submit();" class="button">click here</a>
-        </form>
+        <a th:href="@{/geo/new-map-example}" class="button">Retrieve Data</a>
     </div>
 </section>
 </body>

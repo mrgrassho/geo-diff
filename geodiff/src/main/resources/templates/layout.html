@@ -2,18 +2,18 @@
 <html>
 <head>
     <title>Layout page</title>
+    <link rel="stylesheet" href="/css/master.css" th:href="@{/css/master.css}">
 </head>
 <body>
 <div class="logo-container">
     <img th:src="@{/images/planet-earth-svgrepo-com.svg}" alt="">
     <div class="title-container">
         <h2>GeoDiff</h2>
-        <span>Comparing surface through time</span>
+        <span>Comparing surfaces over time</span>
     </div>
 </div>
 <section layout:fragment="content">
     <p>Page content goes here</p>
 </section>
-<!--src="../static/images/planet-earth-svgrepo-com.svg"-->
 </body>
 </html>

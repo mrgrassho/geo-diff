@@ -1,14 +1,15 @@
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" layout:decorate="~{layout.html}">
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <title>Results | GeoDiff</title>
 </head>
 <body>
     <section class="result-container" layout:fragment="content"
-             style="display:flex" th:each="ei : ${earthImages}">
-        <div>
+             style="display:flex" >
+        <div th:each="ei : ${earthImages}">
             <h3 th:text="${ei.coordinate}"> coordenadas </h3>
-            <img th:src="@{'data:image/jpeg;base64,'+${ei.rawImage}}" />
+            <h3 th:text="${ei.date}"> date </h3>
+            <img th:src="@{'data:image/jpeg;base64,'+${ei.getRawImageInBase64()}}" />
         </div>
     </section>
 </body>

@@ -7,6 +7,7 @@ import com.squareup.okhttp.Request;
 import com.squareup.okhttp.Response;
 
 import java.io.IOException;
+import java.util.Base64;
 
 public class EarthImage {
 
@@ -58,6 +59,11 @@ public class EarthImage {
 
     public byte[] getRawImage() {
         return this.rawImage;
+    }
+
+    public String getRawImageInBase64()
+    {
+        return Base64.getEncoder().encodeToString(this.getRawImage());
     }
 
     public Coordinate getCoordinate() {
