@@ -1,4 +1,4 @@
-package me.rabrg.nasa.model.mars;
+package com.nasa.model.mars;
 
 import com.google.gson.annotations.SerializedName;
 

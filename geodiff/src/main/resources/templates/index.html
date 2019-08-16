@@ -1,57 +1,55 @@
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:layout="http://www.w3.org/1999/xhtml"  layout:decorate="~{layout.html}">
 <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-  <title>GeoDiff | Comparing Surface</title>
-  <link rel="stylesheet" href="/css/master.css" th:href="@{/css/master.css}">
-  <script src="http://www.openlayers.org/api/OpenLayers.js"></script>
-  <script>
-    map = new OpenLayers.Map("mapdiv");
-    map.addLayer(new OpenLayers.Layer.OSM());
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>GeoDiff | Comparing Surface</title>
+    <link rel="stylesheet" href="/css/master.css" th:href="@{/css/master.css}">
+    <script src="http://www.openlayers.org/api/OpenLayers.js"></script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function(event) {
+        map = new OpenLayers.Map("mapdiv");
+        map.addLayer(new OpenLayers.Layer.OSM());
 
-    var lonLat = new OpenLayers.LonLat( 100.75 ,1.4 )
-    .transform(
-      new OpenLayers.Projection("EPSG:4326"), // transform from WGS 1984
-      map.getProjectionObject() // to Spherical Mercator Projection
-    );
+        var lonLat = new OpenLayers.LonLat( 100.75 ,1.4 )
+        .transform(
+          new OpenLayers.Projection("EPSG:4326"), // transform from WGS 1984
+          map.getProjectionObject() // to Spherical Mercator Projection
+        );
 
-    var zoom=16;
+        var zoom=16;
 
-    var markers = new OpenLayers.Layer.Markers( "Markers" );
-    map.addLayer(markers);
+        var markers = new OpenLayers.Layer.Markers( "Markers" );
+        map.addLayer(markers);
 
-    markers.addMarker(new OpenLayers.Marker(lonLat));
+        markers.addMarker(new OpenLayers.Marker(lonLat));
 
-    map.setCenter (lonLat, zoom);
+        map.setCenter (lonLat, zoom);
+    });
   </script>
 </head>
 <body>
-  <div class="logo-container">
-    <img src="../static/images/planet-earth-svgrepo-com.svg" th:src="@{/images/planet-earth-svgrepo-com.svg}" alt="">
-    <div class="title-container">
-      <h2>GeoDiff</h2>
-      <span>Comparing surface through time</span>
-    </div>
-  </div>
-  <div class="result-container">
+<section class="result-container" layout:fragment="content">
     <div id="mapdiv"></div>
     <div class="menu-options">
         <p>Filter Options:</p>
-      <ul>
-        <li>
-            <input type="checkbox" id="deforestation-opt" value="deforestation">
-            <label for="deforestation-opt">Deforestation</label>
-        </li>
-        <li>
-            <input type="checkbox" id="urbanization-opt" value="urbanization">
-            <label for="urbanization-opt">Urbanization</label>
-        </li>
-        <li>
-            <input type="checkbox" id="drought-opt" value="drought">
-            <label for="drought-opt">Drought</label>
-        </li>
-      </ul>
-      <a th:href="@{/new-map}" class="button">Retrieve Data</a>
+        <ul>
+            <li>
+                <input type="checkbox" id="deforestation-opt" value="deforestation">
+                <label for="deforestation-opt">Deforestation</label>
+            </li>
+            <li>
+                <input type="checkbox" id="urbanization-opt" value="urbanization">
+                <label for="urbanization-opt">Urbanization</label>
+            </li>
+            <li>
+                <input type="checkbox" id="drought-opt" value="drought">
+                <label for="drought-opt">Drought</label>
+            </li>
+        </ul>
+        <form id="myform" method="post" enctype='text/plain' th:action="@{/geo/new-map?begin-date=2017-04-01} ">
+            <input name='{"latitude": 29.6, "longitude": 100.75 "' value='"}'/>
+            <a onclick="document.getElementById('myform').submit();" class="button">click here</a>
+        </form>
     </div>
-  </div>
+</section>
 </body>
 </html>

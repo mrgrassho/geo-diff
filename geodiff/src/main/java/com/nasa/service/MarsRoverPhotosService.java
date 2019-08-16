@@ -1,6 +1,6 @@
-package me.rabrg.nasa.service;
+package com.nasa.service;
 
-import me.rabrg.nasa.model.mars.MarsRoverPhotos;
+import com.nasa.model.mars.MarsRoverPhotos;
 import retrofit.Call;
 import retrofit.http.GET;
 import retrofit.http.Query;

@@ -3,6 +3,7 @@ package com.geodiff.rest;
 import com.geodiff.dto.Coordinate;
 import com.geodiff.dto.GeoException;
 import com.geodiff.service.GeoDiffService;
+import com.nasa.model.earth.EarthImage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -46,7 +47,8 @@ public class GeoController {
             @RequestBody ArrayList<Coordinate> coordinates,
             Model model) throws GeoException
     {
-        geoDiffService.createMap(coordinates, beginDate, endDate);
+        ArrayList<EarthImage> eis = geoDiffService.createMap(coordinates, beginDate, endDate);
+        model.addAttribute("earthImages", eis);
         return "results";
     }
 

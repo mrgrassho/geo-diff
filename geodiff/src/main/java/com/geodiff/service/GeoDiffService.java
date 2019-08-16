@@ -3,11 +3,13 @@ package com.geodiff.service;
 
 import com.geodiff.dto.Coordinate;
 import com.geodiff.dto.GeoException;
+import com.geodiff.repository.EarthImageRepository;
 import com.google.gson.Gson;
 import com.rabbitmq.client.*;
-import me.rabrg.nasa.NasaApi;
-import me.rabrg.nasa.model.earth.EarthAssets;
-import me.rabrg.nasa.model.earth.EarthImage;
+import com.nasa.NasaApi;
+import com.nasa.model.earth.EarthAssets;
+import com.nasa.model.earth.EarthImage;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -24,42 +26,51 @@ public class GeoDiffService {
     private static final boolean CLOUDSCORE = true;
     private static final Double DIMENSION = 0.025;
     private static final String API_KEY = "6k9ilibCQcusmZl9RRczizWjFC7K0gkviEt2G4Qa";
-    private static final String TASK_QUEUE_NAME = "TASK_QUEUE";;
+    private static final String TASK_QUEUE_NAME = "TASK_QUEUE";
     private static final String RESULT_QUEUE_NAME = "RESULT_QUEUE";
 
     private final DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
     private Channel channel;
     private Gson gson;
 
-    public void createMap(ArrayList<Coordinate> coordinates, Date beginDate, Date endDate) throws GeoException {
+    @Autowired
+    private EarthImageRepository earthImageRepository;
+
+    public ArrayList<EarthImage> createMap(ArrayList<Coordinate> coordinates, Date beginDate, Date endDate) throws GeoException {
         NasaApi nasaApi = new NasaApi(API_KEY);
+        ArrayList<EarthImage> eis = new ArrayList<>();
         try {
             HashMap<String, ArrayList<EarthImage>> res = new HashMap<>();
             String beginDateStr = (beginDate != null) ? df.format(beginDate): null;
             String endDateStr = (endDate != null) ? df.format(endDate): null;
             for (Coordinate coord : coordinates) {
                 // TODO: Busco si se encuentra en la BD local
-
                 // Busco en la API
                 EarthAssets eas = nasaApi.getEarthAssets(coord.getLatitude(), coord.getLongitude(), beginDateStr, endDateStr);
-                ArrayList<EarthImage> ei = new ArrayList<>();
                 if (eas.getCount() > 0) {
                     for (EarthAssets.EarthAsset ea: eas.getResults()) {
                         try {
-                            EarthImage e = nasaApi.getEarthImage(coord.getLatitude(), coord.getLongitude(), DIMENSION, ea.getDate().split("T")[0], CLOUDSCORE);
-                            e.setCoordinate(coord);
-                            e.setDim(DIMENSION);
-                            ei.add(e);
+                            EarthImage e;
+                            if (null == (e = earthImageRepository.findByCoordinateAndDate(coord, "^" + ea.getDate().split("T")[0]))) {
+                                e = nasaApi.getEarthImage(coord.getLatitude(), coord.getLongitude(), DIMENSION, ea.getDate().split("T")[0], CLOUDSCORE);
+                                e.setCoordinate(coord);
+                                e.setDim(DIMENSION);
+                            }
+                            eis.add(e);
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
                     }
                 }
-                res.put(coord.toString(), ei);
+                res.put(coord.toString(), eis);
             }
             // Cargar las imagenes
 
-            // TODO: Guardar las imagenes en base
+            for (EarthImage ei: eis) {
+                earthImageRepository.save(ei);
+            }
+
+            return eis;
 
             // Cliente RabbitMQ envia trabajos a la TASK QUEUE
 
@@ -72,7 +83,6 @@ public class GeoDiffService {
         ConnectionFactory factory = new ConnectionFactory();
         factory.setHost("localhost");
         this.channel.queueDeclare(TASK_QUEUE_NAME, true, false, false, null);
-
     }
 
 
@@ -87,6 +97,7 @@ public class GeoDiffService {
         GetResponse res = channel.basicGet(RESULT_QUEUE_NAME, true);
         return gson.fromJson(res.getBody().toString(), EarthImage.class);
     }
+
 
     //public ArrayList<RawImage> loadImages(ei);
 }

@@ -1,8 +1,8 @@
-package me.rabrg.nasa.model.neo;
+package com.nasa.model.neo;
 
 import com.google.gson.annotations.SerializedName;
-import me.rabrg.nasa.model.Links;
-import me.rabrg.nasa.model.Page;
+import com.nasa.model.Links;
+import com.nasa.model.Page;
 
 import java.util.List;
 

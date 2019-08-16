@@ -1,4 +1,4 @@
-package me.rabrg.nasa.model;
+package com.nasa.model;
 
 public final class Links {
 

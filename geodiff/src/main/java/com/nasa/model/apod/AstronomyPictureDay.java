@@ -1,4 +1,4 @@
-package me.rabrg.nasa.model.apod;
+package com.nasa.model.apod;
 
 import com.google.gson.annotations.SerializedName;
 

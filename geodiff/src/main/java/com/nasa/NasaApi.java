@@ -1,29 +1,24 @@
-package me.rabrg.nasa;
+package com.nasa;
 
+import com.nasa.model.apod.AstronomyPictureDay;
+import com.nasa.model.earth.EarthAssets;
+import com.nasa.model.earth.EarthImage;
+import com.nasa.model.mars.MarsRoverPhotos;
+import com.nasa.model.neo.NearEarthObject;
+import com.nasa.model.neo.NearEarthObjectBrowse;
+import com.nasa.model.neo.NearEarthObjectFeed;
+import com.nasa.service.AstronomyPictureDayService;
+import com.nasa.service.EarthService;
+import com.nasa.service.MarsRoverPhotosService;
+import com.nasa.service.NearEarthObjectService;
 import com.squareup.okhttp.Headers;
 import com.squareup.okhttp.Interceptor;
 import com.squareup.okhttp.OkHttpClient;
-import me.rabrg.nasa.model.apod.AstronomyPictureDay;
-import me.rabrg.nasa.model.earth.EarthAssets;
-import me.rabrg.nasa.model.earth.EarthImage;
-import me.rabrg.nasa.model.mars.MarsRoverPhotos;
-import me.rabrg.nasa.model.neo.NearEarthObject;
-import me.rabrg.nasa.model.neo.NearEarthObjectBrowse;
-import me.rabrg.nasa.model.neo.NearEarthObjectFeed;
-import me.rabrg.nasa.service.AstronomyPictureDayService;
-import me.rabrg.nasa.service.EarthService;
-import me.rabrg.nasa.service.MarsRoverPhotosService;
-import me.rabrg.nasa.service.NearEarthObjectService;
 import retrofit.Call;
 import retrofit.GsonConverterFactory;
 import retrofit.Response;
 import retrofit.Retrofit;
-import sun.misc.BASE64Decoder;
 
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
-import java.io.File;
 import java.io.IOException;
 
 /**
@@ -173,16 +168,16 @@ public final class NasaApi {
             final boolean cloudScore) throws IOException {
         EarthImage ei = get(earthService.earthImage(lat, lon, dim, date, cloudScore, apiKey));
         ei.setImageByUrl(client);
-        BASE64Decoder decoder = new BASE64Decoder();
-        ByteArrayInputStream bis = new ByteArrayInputStream(ei.getRawImage());
-        BufferedImage image = ImageIO.read(bis);
-        System.out.println("IMAGE PART: "+image.toString().substring(10));
-        bis.close();
-
-        // write the image to a file
-        File outputfile = new File("images-test/"+ei.getId().split("/")[1]+".png");
-        outputfile.createNewFile();
-        ImageIO.write(image, "png", outputfile);
+//        BASE64Decoder decoder = new BASE64Decoder();
+//        ByteArrayInputStream bis = new ByteArrayInputStream(ei.getRawImage());
+//        BufferedImage image = ImageIO.read(bis);
+//        System.out.println("IMAGE PART: "+image.toString().substring(10));
+//        bis.close();
+//
+//        // write the image to a file
+//        File outputfile = new File("images-test/"+ei.getId().split("/")[1]+".png");
+//        outputfile.createNewFile();
+//        ImageIO.write(image, "png", outputfile);
         return ei;
     }
 

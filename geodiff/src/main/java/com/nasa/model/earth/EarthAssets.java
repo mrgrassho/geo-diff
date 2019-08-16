@@ -1,4 +1,4 @@
-package me.rabrg.nasa.model.earth;
+package com.nasa.model.earth;
 
 import java.util.List;
 

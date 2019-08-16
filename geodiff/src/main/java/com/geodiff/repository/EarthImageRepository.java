@@ -1,12 +1,12 @@
 package com.geodiff.repository;
 
 import com.geodiff.dto.Coordinate;
-import me.rabrg.nasa.model.earth.EarthImage;
+import com.nasa.model.earth.EarthImage;
 import org.springframework.data.mongodb.repository.MongoRepository;
-
-import java.util.Date;
+import org.springframework.data.mongodb.repository.Query;
 
 public interface EarthImageRepository extends MongoRepository<EarthImage, String> {
 
-    public EarthImage findByCoordinateAndDate(Coordinate coordinate, Date fecha);
+    @Query("{ 'coordinate' : ?0, 'date' : { $regex: ?1 } }")
+    public EarthImage findByCoordinateAndDate(Coordinate coordinate, String date);
 }

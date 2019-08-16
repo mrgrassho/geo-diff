@@ -1,0 +1,15 @@
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Results | GeoDiff</title>
+</head>
+<body>
+    <section class="result-container" layout:fragment="content"
+             style="display:flex" th:each="ei : ${earthImages}">
+        <div>
+            <h3 th:text="${ei.coordinate}"> coordenadas </h3>
+            <img th:src="@{'data:image/jpeg;base64,'+${ei.rawImage}}" />
+        </div>
+    </section>
+</body>
+</html>

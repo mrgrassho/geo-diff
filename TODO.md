@@ -5,6 +5,7 @@
 - [X] Conseguir Datasets de Imagenes (API NASA)
 - [X] Plantear Arquitectura
 - [X] Definir que va a tener la Interfaz Web (Ver Mockups)
-- [ ] Armar wrapper a la API (Similar a [python-wrapper]())
+- [X] Armar wrapper a la API (Similar a [python-wrapper]())
+- [X] Agrega persistencia a los datasets (MongoDB).
 - [ ] Decidir que tecnologías usar (back, front, etc).
 - [ ] Sobre el Front. (Analizar si OpenStreetMap cumple con lo deseado).
