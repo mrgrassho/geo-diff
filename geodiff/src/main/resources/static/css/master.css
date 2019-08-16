@@ -1,13 +1,16 @@
 body {
-    background-color: #b9cbb8;
+    background-color: #546d52;
+}
+
+.rounded {
+    border-radius: 5px;
 }
 
 .logo-container {
     display: flex;
     height: 60px;
-    background-color:#e5e6e7;
+    background-color: #d1dcda;
     padding: 1%;
-    border-radius: 5px;
 }
 
 .logo-container img{
@@ -53,13 +56,17 @@ a.button:hover {
 .menu-options{
     grid-area: sidebar;
     padding: 10%;
-    background-color:#e2dae5;
+    background-color: #d1dcda;
     margin: 0% 0% 0% 4%;
-    border-radius: 5px;
-
 }
 
 .menu-options ul{
     list-style: none;
     padding: 2%;
+}
+
+.box {
+    margin-top: 1%;
+    padding: 2%;
+    background-color: #d1dcda;
 }

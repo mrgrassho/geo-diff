@@ -2,33 +2,94 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <title>GeoDiff | Comparing Surface</title>
-    <script src="http://www.openlayers.org/api/OpenLayers.js"></script>
+<!--    <script src="http://www.openlayers.org/api/OpenLayers.js"></script>-->
+    <script src="https://cdn.rawgit.com/openlayers/openlayers.github.io/master/en/v5.3.0/build/ol.js"></script>
+    <link rel="stylesheet" href="https://openlayers.org/en/v5.3.0/css/ol.css" type="text/css">
     <script>
-    document.addEventListener("DOMContentLoaded", function(event) {
-        map = new OpenLayers.Map("mapdiv");
-        map.addLayer(new OpenLayers.Layer.OSM());
+      document.addEventListener('DOMContentLoaded', function(event) {
+          var Map = ol.Map;   //import Map from 'ol/Map.js';
+          var View = ol.View; //import View from 'ol/View.js';
+          var Draw = ol.interaction.Draw; //import Draw from 'ol/interaction/Draw.js';
+          var TileLayer = ol.layer.Tile; //import {Tile as TileLayer, Vector as VectorLayer} from 'ol/layer.js';
+          var VectorLayer = ol.layer.Vector; //import {Tile as TileLayer, Vector as VectorLayer} from 'ol/layer.js';
+          var OSM = ol.source.OSM; //import {OSM, Vector as VectorSource} from 'ol/source.js';
+          var VectorSource = ol.source.Vector; //import {OSM, Vector as VectorSource} from 'ol/source.js';
 
-        var lonLat = new OpenLayers.LonLat( 100.75 ,1.4 )
-        .transform(
-          new OpenLayers.Projection("EPSG:4326"), // transform from WGS 1984
-          map.getProjectionObject() // to Spherical Mercator Projection
-        );
+          var raster = new TileLayer({
+            source: new OSM()
+          });
 
-        var zoom=16;
+          var source = new VectorSource({wrapX: false});
 
-        var markers = new OpenLayers.Layer.Markers( "Markers" );
-        map.addLayer(markers);
+          var vector = new VectorLayer({
+            source: source
+          });
 
-        markers.addMarker(new OpenLayers.Marker(lonLat));
+          var map = new Map({
+            layers: [raster, vector],
+            target: 'map',
+            view: new View({
+              center: [-11000000, 4600000],
+              zoom: 4
+            })
+          });
 
-        map.setCenter (lonLat, zoom);
-    });
-  </script>
+          var typeSelect = document.getElementById('type');
+
+          var draw; // global so we can remove it later
+          function addInteraction() {
+            var value = typeSelect.value;
+            if (value !== 'None') {
+              draw = new Draw({
+                source: source,
+                type: typeSelect.value
+              });
+              map.addInteraction(draw);
+            }
+          }
+
+
+          /**
+           * Handle change event.
+           */
+          typeSelect.onchange = function() {
+            map.removeInteraction(draw);
+            addInteraction();
+          };
+
+          addInteraction();
+      });
+    </script>
 </head>
 <body>
-<section class="result-container" layout:fragment="content">
-    <div id="mapdiv"></div>
-    <div class="menu-options">
+<section class="result-container rounded" layout:fragment="content">
+    <div>
+        <div id="map" class="map rounded"></div>
+        <div class="box rounded">
+            <form class="form-inline">
+                <label>Geometry type &nbsp;</label>
+                <select id="type">
+                    <option value="Point">Point</option>
+                    <option value="LineString">LineString</option>
+                    <option value="Polygon">Polygon</option>
+                    <option value="Circle">Circle</option>
+                    <option value="None">None</option>
+                </select>
+            </form>
+            <p>Select a geometry type from the dropdown above to start drawing. To finish drawing, click the last point. To activate freehand drawing for lines, polygons, and circles, hold the <code>Shift</code> key.</p>
+        </div>
+
+    </div>
+    <div class="menu-options rounded">
+        <p>Date Intervals:</p>
+        <div>
+            <label for="begin-date" value="2017-01-01">Begin: </label>
+            <input id="begin-date" type="date">
+        </div>
+        <div>
+            <label for="end-date">End: </label>
+            <input id="end-date" type="date" th:value="${#dates.format(#dates.createNow(), 'yyyy-MM-dd')}">
+        </div>
         <p>Filter Options:</p>
         <ul>
             <li>
