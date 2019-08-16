@@ -6,3 +6,4 @@ target/
 /**/images-test/
 /**/.mvn/
 *.DS_Store
+application.properties

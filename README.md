@@ -13,6 +13,47 @@ Estos 'cambios', los denominaremos **metodos de detección**, entre los cuales d
 - ~~Detección de Retroceso del nivel del mar.~~
 - ~~Detección de Sequias.~~
 
+### Build & Run
+
+#### MongoDB
+
+1. Se debe instalar el motor de BD NoSQL MongoDB, para instalar MongoDB haga click [aquí](https://docs.mongodb.com/manual/installation/)
+
+2. Luego de inicie en MongoDB sobre una terminal:
+```bash
+mongod
+```
+
+3. Sobre otra terminal se debe conectarse a la BD:
+```bash
+mongo --port 27017 -u "admin" -p "admin" \
+       --authenticationDatabase "admin"
+```
+
+4. A continuación se detallan algunas operaciones a realizar sobre la consola de mongoDB:
+
+##### Crear una BD
+
+Se debe crear una nueva base de datos:
+```bash
+use 'nombre-bd'
+```
+
+##### Crear un usuario para una BD
+
+Se debe crear un nuevo usuario con permisos de *Lectura/Escritura* para una BD:
+```bash
+db.createUser(
+  {
+    user: 'new_user',
+    pwd: 'some_password',
+    roles: [ { role: 'readWrite', db: 'new_database' } ]
+  }
+)
+```
+
+5. Por ultimo se debe crear el archivo `src/main/resources/application.properties`. Utilize como ejemplo el archivo `src/main/resources/application.properties.example` pero **no lo elimine, cree un archivo nuevo**.
+
 ### Mockups
 
 #### Home
