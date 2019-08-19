@@ -6,10 +6,10 @@
 <body>
     <section class="result-container" layout:fragment="content"
              style="display:flex" >
-        <div th:each="ei : ${earthImages}">
-            <h3 th:text="${ei.coordinate}"> coordenadas </h3>
-            <h3 th:text="${ei.date}"> date </h3>
-            <img th:src="@{'data:image/jpeg;base64,'+${ei.getRawImageInBase64()}}" />
+        <div th:each="gi : ${GeoImage}">
+            <h3 th:text="${gi.earthImage.coordinate}"> coordenadas </h3>
+            <h3 th:text="${gi.earthImage.date}"> date </h3>
+            <img th:src="@{'data:image/jpeg;base64,'+${gi.earthImage.getRawImageInBase64()}}" />
         </div>
     </section>
 </body>
