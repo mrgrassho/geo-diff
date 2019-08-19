@@ -11,9 +11,11 @@
           var View = ol.View; //import View from 'ol/View.js';
           var Draw = ol.interaction.Draw; //import Draw from 'ol/interaction/Draw.js';
           var TileLayer = ol.layer.Tile; //import {Tile as TileLayer, Vector as VectorLayer} from 'ol/layer.js';
+          var ImageLayer = ol.layer.Image;
           var VectorLayer = ol.layer.Vector; //import {Tile as TileLayer, Vector as VectorLayer} from 'ol/layer.js';
           var OSM = ol.source.OSM; //import {OSM, Vector as VectorSource} from 'ol/source.js';
           var VectorSource = ol.source.Vector; //import {OSM, Vector as VectorSource} from 'ol/source.js';
+          var Static = ol.source.ImageStatic;
 
           var raster = new TileLayer({
             source: new OSM()
@@ -21,15 +23,29 @@
 
           var source = new VectorSource({wrapX: false});
 
-          var vector = new VectorLayer({
-            source: source
-          });
+
+          var imageExtent = [-841259.17, 6405988.47, 404314.67, 8733289.17];
 
           var map = new Map({
-            layers: [raster, vector],
+            layers: [
+              new TileLayer({
+                source: new OSM()
+              }),
+              new ImageLayer({
+                opacity: 0.75,
+                source: new Static({
+                  url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/' +
+                         'British_National_Grid.svg/2000px-British_National_Grid.svg.png',
+                  crossOrigin: '',
+                  projection: 'EPSG:3857',
+                  imageExtent: imageExtent
+                })
+              })
+            ],
             target: 'map',
             view: new View({
-              center: [-11000000, 4600000],
+              center: [-352221.88, 7267785.55],
+              projection: 'EPSG:3857',
               zoom: 4
             })
           });

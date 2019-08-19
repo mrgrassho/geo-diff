@@ -32,3 +32,4 @@ build/
 
 # Application Properties file
 application.properties
+*.DS_Store

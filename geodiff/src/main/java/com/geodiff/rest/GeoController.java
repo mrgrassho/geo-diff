@@ -2,8 +2,8 @@ package com.geodiff.rest;
 
 import com.geodiff.dto.Coordinate;
 import com.geodiff.dto.GeoException;
+import com.geodiff.model.GeoImage;
 import com.geodiff.service.GeoDiffService;
-import com.nasa.model.earth.EarthImage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -49,9 +49,21 @@ public class GeoController {
             @RequestBody ArrayList<Coordinate> coordinates,
             Model model) throws GeoException
     {
-        ArrayList<EarthImage> eis = geoDiffService.createMap(coordinates, beginDate, endDate);
+        ArrayList<GeoImage> eis = geoDiffService.createMap(coordinates, beginDate, endDate);
         model.addAttribute("earthImages", eis);
         return "results";
+    }
+
+    @GetMapping("/img")
+    public GeoImage getImage(
+            @RequestParam(name = "near-date", required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd") Date nearDate,
+            @RequestParam(name = "lat", required = true) Double latitude,
+            @RequestParam(name = "lon", required = true) Double longitude,
+            @RequestParam(name = "filter", required = true) String filter ) throws GeoException
+
+    {
+        return geoDiffService.findGeoImageLessEqualDate(latitude, longitude, nearDate, filter);
     }
 
     /**
