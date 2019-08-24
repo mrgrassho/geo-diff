@@ -6,3 +6,5 @@ spring.data.mongodb.database=mongo
 spring.data.mongodb.repositories.enabled=true
 spring.data.mongodb.username=admin
 spring.data.mongodb.password=admin
+
+spring.data.mongobee.changelogs=com.geodiff.changelogs

@@ -2,15 +2,19 @@ package com.geodiff.service;
 
 
 import com.geodiff.dto.Coordinate;
+import com.geodiff.dto.GeoAsset;
 import com.geodiff.dto.GeoException;
 import com.geodiff.model.GeoImage;
 import com.geodiff.repository.FilterOptionRepository;
 import com.geodiff.repository.GeoImageRepository;
 import com.google.gson.Gson;
-import com.rabbitmq.client.*;
 import com.nasa.NasaApi;
 import com.nasa.model.earth.EarthAssets;
 import com.nasa.model.earth.EarthImage;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.GetResponse;
+import com.rabbitmq.client.MessageProperties;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -19,6 +23,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 
 @Service
 public class GeoDiffService {
@@ -40,37 +45,51 @@ public class GeoDiffService {
     @Autowired
     private FilterOptionRepository filterOptionRepository;
 
-    public ArrayList<GeoImage> createMap(ArrayList<Coordinate> coordinates, Date beginDate, Date endDate) throws GeoException {
+    public HashMap<String, ArrayList<GeoAsset>> createMap(ArrayList<Coordinate> coordinates, Date beginDate, Date endDate) throws GeoException {
         NasaApi nasaApi = new NasaApi(API_KEY);
-        ArrayList<GeoImage> geoImages = new ArrayList<>();
+        ArrayList<EarthAssets> earthAssets = new ArrayList<>();
+        HashMap<String, ArrayList<GeoAsset>> geoAssets =  new HashMap<>();
         try {
             String beginDateStr = (beginDate != null) ? df.format(beginDate): null;
             String endDateStr = (endDate != null) ? df.format(endDate): null;
             for (Coordinate coord : coordinates) {
-
                 EarthAssets eas = nasaApi.getEarthAssets(coord.getLatitude(), coord.getLongitude(), beginDateStr, endDateStr);
+                eas.setCoordinate(coord);
                 if (eas.getCount() > 0) {
                     for (EarthAssets.EarthAsset ea: eas.getResults()) {
                         try {
                             GeoImage gi;
-                            if (null == (gi = geoImageRepository.findByCoordinateDateAndFilter(coord, regexBeginWith(ea.getDate().split("T")[0]), "RAW"))) {
+                            if (null == (gi = geoImageRepository.findByCoordinateDateAndFilter(coord.getLatitude(), coord.getLongitude(), regexBeginWith(ea.getDate().split("T")[0]), "RAW"))) {
                                 EarthImage e = nasaApi.getEarthImage(coord.getLatitude(), coord.getLongitude(), DIMENSION, ea.getDate().split("T")[0], CLOUDSCORE);
                                 e.setCoordinate(coord);
                                 e.setDim(DIMENSION);
                                 gi = new GeoImage();
                                 gi.setEarthImage(e);
                                 gi.setFilterOption(filterOptionRepository.findByName("RAW"));
+                                geoImageRepository.save(gi);
                             }
-                            geoImages.add(gi);
-                            geoImageRepository.save(gi);
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
                     }
                 }
-
+                earthAssets.add(eas);
             }
-            return geoImages;
+
+            for (int i = 0; i < earthAssets.size(); i++) {
+                for (int j = 0; j < earthAssets.get(i).getCount(); j++) {
+                    ArrayList<GeoAsset> ga;
+                    if (null == (ga = geoAssets.get(String.valueOf(i)))) {
+                        ga = new ArrayList<>();
+                    }
+                    String date = earthAssets.get(i).getResults().get(j).getDate();
+                    Coordinate coord = earthAssets.get(i).getCoordinate();
+                    ga.add(new GeoAsset(date, coord));
+                    geoAssets.put(String.valueOf(j), ga);
+                }
+            }
+
+            return geoAssets;
 
             // Cliente RabbitMQ envia trabajos a la TASK QUEUE
 
@@ -98,9 +117,9 @@ public class GeoDiffService {
         return gson.fromJson(res.getBody().toString(), EarthImage.class);
     }
 
-    public GeoImage findGeoImageLessEqualDate(Double lat, Double lon, Date date, String nameFilter) throws GeoException {
+    public GeoImage findGeoImage(Double lat, Double lon, Date date, String nameFilter) throws GeoException {
         if ( lat == null  || lon == null || date == null || nameFilter == null) throw new GeoException("Null params found.") ;
-        return geoImageRepository.findByCoordinateLTEDateAndFilter(new Coordinate(lat, lon), regexBeginWith(df.format(date)), nameFilter);
+        return geoImageRepository.findByCoordinateAndDateAndFilter(lat, lon, df.format(date), nameFilter);
     }
 
     public String regexBeginWith(String str) {

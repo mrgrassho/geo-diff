@@ -16,7 +16,7 @@
 
 - [ ] Al filtro de deforestación agregarle mas gamas de procesos. No un único color para diferenciar campos de tierra.
 - [ ] Hacer un proceso más fino sobre el filtro de deforestación para diferenciar entre bosques/selvas y plantaciones. **Se puede agregar lógica según la forma del terreno, es facil distinguir terrenos siguiendo esto.**
-- [ ] Definir logica para filtros de sequia y edificación. 
+- [ ] Definir logica para filtros de sequia y edificación.
 
 #### FrontEnd
 
@@ -31,4 +31,4 @@
 
 #### MongoDB
 
-- [ ] Arreglar Query Regex en MongoRepository (No obtiene bien el resultado).
+- [X] Arreglar Query Regex en MongoRepository (No obtiene bien el resultado).

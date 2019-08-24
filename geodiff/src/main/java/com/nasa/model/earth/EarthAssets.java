@@ -1,5 +1,7 @@
 package com.nasa.model.earth;
 
+import com.geodiff.dto.Coordinate;
+
 import java.util.List;
 
 public final class EarthAssets {
@@ -15,10 +17,21 @@ public final class EarthAssets {
         return results;
     }
 
+    private Coordinate coordinate;
+
+    public Coordinate getCoordinate() {
+        return coordinate;
+    }
+
+    public void setCoordinate(Coordinate coordinate) {
+        this.coordinate = coordinate;
+    }
+
     public static final class EarthAsset {
 
         private String date;
         private String id;
+
 
         public String getDate() {
             return date;
@@ -27,5 +40,6 @@ public final class EarthAssets {
         public String getId() {
             return id;
         }
+
     }
 }
