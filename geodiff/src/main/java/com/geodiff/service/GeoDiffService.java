@@ -36,6 +36,7 @@ public class GeoDiffService {
     private static final String RESULT_QUEUE_NAME = "RESULT_QUEUE";
 
     private final DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+    private final DateFormat timestamp = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
     private Channel channel;
     private Gson gson;
 
@@ -76,16 +77,19 @@ public class GeoDiffService {
                 earthAssets.add(eas);
             }
 
-            for (int i = 0; i < earthAssets.size(); i++) {
-                for (int j = 0; j < earthAssets.get(i).getCount(); j++) {
+            // SE ASUME QUE TODOS LOS earthAssets tienen la misma LONGITUD
+            // REVISAR ESTO PARA QUE CARGUE UNA IMAGEN VACIA SI NO
+            // se tiene el resultado
+            for (int i = 0; i < earthAssets.get(0).getCount(); i++) {
+                for (int j = 0; j < earthAssets.size(); j++) {
                     ArrayList<GeoAsset> ga;
                     if (null == (ga = geoAssets.get(String.valueOf(i)))) {
                         ga = new ArrayList<>();
                     }
-                    String date = earthAssets.get(i).getResults().get(j).getDate();
-                    Coordinate coord = earthAssets.get(i).getCoordinate();
+                    String date = earthAssets.get(j).getResults().get(i).getDate();
+                    Coordinate coord = earthAssets.get(j).getCoordinate();
                     ga.add(new GeoAsset(date, coord));
-                    geoAssets.put(String.valueOf(j), ga);
+                    geoAssets.put(String.valueOf(i), ga);
                 }
             }
 
@@ -117,9 +121,9 @@ public class GeoDiffService {
         return gson.fromJson(res.getBody().toString(), EarthImage.class);
     }
 
-    public GeoImage findGeoImage(Double lat, Double lon, Date date, String nameFilter) throws GeoException {
-        if ( lat == null  || lon == null || date == null || nameFilter == null) throw new GeoException("Null params found.") ;
-        return geoImageRepository.findByCoordinateAndDateAndFilter(lat, lon, df.format(date), nameFilter);
+    public GeoImage findGeoImage(Double lat, Double lon, Date t, String nameFilter) throws GeoException {
+        if ( lat == null  || lon == null || t == null || nameFilter == null) throw new GeoException("Null params found.") ;
+        return geoImageRepository.findByCoordinateAndDateAndFilter(lat, lon, timestamp.format(t), nameFilter);
     }
 
     public String regexBeginWith(String str) {

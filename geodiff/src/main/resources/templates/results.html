@@ -2,15 +2,25 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <title>Results | GeoDiff</title>
+    <script th:inline="javascript">
+/*<![CDATA[*/
+
+        var GeoAssets = /*[[${GeoAssets}]]*/ 'default';
+
+        document.addEventListener('DOMContentLoaded', function(event) {
+            GeoImage.Main(GeoAssets);
+        });
+
+/*]]>*/
+    </script>
 </head>
 <body>
-    <section class="result-container" layout:fragment="content"
-             style="display:flex" >
-        <div th:each="gi : ${GeoImage}">
-            <h3 th:text="${gi.earthImage.coordinate}"> coordenadas </h3>
-            <h3 th:text="${gi.earthImage.date}"> date </h3>
-            <img th:src="@{'data:image/jpeg;base64,'+${gi.earthImage.getRawImageInBase64()}}" />
+    <section class="result-container" layout:fragment="content">
+        <div>
+            <div id="map" class="map rounded"></div>
+            <div id="result-groups-100" class="box rounded"></div>
         </div>
+        <div class="menu-options rounded"></div>
     </section>
 </body>
 </html>
