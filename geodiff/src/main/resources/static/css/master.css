@@ -36,7 +36,34 @@ a.button {
 }
 
 a.button:hover {
-    background-color: #97c7d7;
+    background-color: #13b706;
+    color: white;
+}
+
+.pop-up {
+    background-color: white;
+    border-radius: 2px;
+    padding: 0
+    text-decoration: none;
+    color: initial;
+}
+
+.pop-up::before {
+  content: "";
+  display: block;
+  width: 30px;
+  border-width: 0px 25px 13px 20px;
+  border-style: solid;
+  border-color: #ffffff transparent;
+}
+
+.pop-up:hover {
+    background-color: #13b706;
+    color: white;
+}
+
+.pop-up:hover::before {
+  border-color:  #13b706 transparent;
 }
 
 .result-container{
@@ -69,4 +96,13 @@ a.button:hover {
     margin-top: 1%;
     padding: 2%;
     background-color: #d1dcda;
+}
+
+#result-groups-100 > div > div {
+    margin: 0% 0.5%;
+}
+
+div#result-groups-100 > div {
+    display: flex;
+    border-top: 2px solid;
 }

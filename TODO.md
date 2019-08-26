@@ -21,8 +21,8 @@
 #### FrontEnd
 
 - [ ] Ver la forma de obtener las coordenadas que se encuentran dentro de un area marcada con OpenLayers.
-- [ ] Agregar Slider por fechas (definir de cuantos días va a ser la agrupación). *Recordar que no todas las imagenes obtenidas van a ser del mismo día.*
-- [ ] Armar clases JS para posicionar y obtener las imagenes procesadas.
+- [X] Agregar Slider por fechas (definir de cuantos días va a ser la agrupación). *Recordar que no todas las imagenes obtenidas van a ser del mismo día.*
+- [X] Armar clases JS para posicionar y obtener las imagenes procesadas.
 - [ ] Realizar checkbox de los filtros dinamicamente. (**Eliminar Hardcode**).
 
 #### RabbitMQ
@@ -32,3 +32,4 @@
 #### MongoDB
 
 - [X] Arreglar Query Regex en MongoRepository (No obtiene bien el resultado).
+- [ ] Cambiar la forma de realizar un query sobre una coordenada. (Basarse en una coordenada aproximada, [coord + - una constante]). ALTERNATIVA: Estudiar BDs arcGIS. 

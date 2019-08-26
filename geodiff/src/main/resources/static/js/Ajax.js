@@ -12,6 +12,6 @@ Ajax.request = function(method, url, json, callback) {
 
     }
   }
-  if (0 == json.toString.length) xhr.send();
-  else xhr.send(json);
+  if (json == {}) xhr.send();
+  else xhr.send(JSON.stringify(json));
 }

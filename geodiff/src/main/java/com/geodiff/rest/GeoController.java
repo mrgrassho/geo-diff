@@ -57,6 +57,27 @@ public class GeoController {
     }
 
     /**
+     * Carga un nuevo mapa.
+     *
+     *  @param    beginDate         FechaDesde >= fecha.
+     *  @param    endDate           FechaHasta <= fecha.
+     *  @param    coordinates       Lista de coordenadas que se quieren procesar.
+     *  @return                     Lista de Imagenes.
+     * */
+    @PostMapping("/img-assets")
+    @ResponseBody
+    @ResponseStatus(HttpStatus.OK)
+    public HashMap<String, ArrayList<GeoAsset>> getAssets(
+            @RequestParam(name = "begin-date", required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd") Date beginDate,
+            @RequestParam(name = "end-date", required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd") Date endDate,
+            @RequestBody ArrayList<Coordinate> coordinates) throws GeoException
+    {
+        return geoDiffService.createMap(coordinates, beginDate, endDate);
+    }
+
+    /**
      *  Get an image resource.
      *
      *  @param    date         Date

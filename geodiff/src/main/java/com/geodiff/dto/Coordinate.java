@@ -26,9 +26,4 @@ public class Coordinate {
     public void setLongitude(Double longitude) {
         this.longitude = longitude;
     }
-
-    @Override
-    public String toString() {
-        return "(lat:" + getLatitude() + ", lon:" + getLongitude().toString() +")";
-    }
 }
