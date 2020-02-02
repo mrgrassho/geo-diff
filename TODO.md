@@ -12,6 +12,10 @@
 - [X] Decidir que tecnologías usar (back, front, etc).
 - [X] Sobre el Front. (Analizar si OpenStreetMap cumple con lo deseado). **Se eligió OpenLayers.**
 
+- [ ] Documentar bien la API y OpenLayers (las mañas que tiene de tipos de notación para puntos de coordenadas -> 'EPSG:4326', 'EPSG:21781')
+
+- [ ] Devolver msj de NO se encontraron resultados, Tener en cuenta que hay puntos geograficos que no devulve resultados o no estan disponibles en periodos de tiempo
+
 #### OpenCV
 
 - [ ] Al filtro de deforestación agregarle mas gamas de procesos. No un único color para diferenciar campos de tierra.
@@ -32,4 +36,4 @@
 #### MongoDB
 
 - [X] Arreglar Query Regex en MongoRepository (No obtiene bien el resultado).
-- [ ] Cambiar la forma de realizar un query sobre una coordenada. (Basarse en una coordenada aproximada, [coord + - una constante]). ALTERNATIVA: Estudiar BDs arcGIS. 
+- [ ] Cambiar la forma de realizar un query sobre una coordenada. (Basarse en una coordenada aproximada, [coord + - una constante]). ALTERNATIVA: Estudiar BDs arcGIS.

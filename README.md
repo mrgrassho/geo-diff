@@ -69,7 +69,7 @@ db.createUser(
 ![Arquitectura](/diagrams/GeoDiff-DiagramaDeArquitectura.png)
 
 1. Desde el frontEnd se envia las coordenadas del mapa dibujado. (+ Junto con el periodo de fechas que se quiere buscar)
-2. Se solicitian Imagenes a la API ([NASA - Earth](https://api.nasa.gov/api.html#earth))
+2. Se solicitian Imagenes a la API ([NASA - Earth](https://api.nasa.gov/))
 3. Se encolan los resultados en la Work Queue.
 4. Los workers consumen de la work queue y aplican el filtro de detección.
 5. Los resultados son encolados en la Result Queue.

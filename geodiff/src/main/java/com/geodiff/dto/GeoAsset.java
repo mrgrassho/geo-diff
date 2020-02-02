@@ -2,11 +2,11 @@ package com.geodiff.dto;
 
 public class GeoAsset {
     private String date;
-    private Coordinate coordinate;
+    private Coordinate centerCoordinate;
 
-    public GeoAsset(String date, Coordinate coordinate) {
+    public GeoAsset(String date, Coordinate centerCoordinate) {
         this.date = date;
-        this.coordinate = coordinate;
+        this.centerCoordinate = centerCoordinate;
     }
 
     public String getDate() {
@@ -17,11 +17,11 @@ public class GeoAsset {
         this.date = date;
     }
 
-    public Coordinate getCoordinate() {
-        return coordinate;
+    public Coordinate getCenterCoordinate() {
+        return centerCoordinate;
     }
 
-    public void setCoordinate(Coordinate coordinate) {
-        this.coordinate = coordinate;
+    public void setCenterCoordinate(Coordinate centerCoordinate) {
+        this.centerCoordinate = centerCoordinate;
     }
 }

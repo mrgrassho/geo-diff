@@ -4,21 +4,32 @@
     <title>Results | GeoDiff</title>
     <script th:inline="javascript">
 /*<![CDATA[*/
-
         var GeoAssets = /*[[${GeoAssets}]]*/ 'default';
-
-        document.addEventListener('DOMContentLoaded', function(event) {
-            GeoImage.Main(GeoAssets);
-        });
-
 /*]]>*/
+    </script>
+    <script th:inline="javascript">
+      document.addEventListener('DOMContentLoaded', function(event) {
+          GeoImage.init();
+          GeoImage.Main(GeoAssets);
+      });
     </script>
 </head>
 <body>
     <section class="result-container" layout:fragment="content">
         <div>
             <div id="map" class="map rounded"></div>
-            <div id="result-groups-100" class="box rounded"></div>
+            <div id="result-groups-100" class="box rounded">
+                <form class="form-inline">
+                    <label>Geometry type &nbsp;</label>
+                    <select id="type">
+                        <option value="Polygon" disabled>Polygon</option>
+                        <option value="Box">Box</option>
+                        <option value="Square" selected>Square</option>
+                        <option value="None">None</option>
+                    </select>
+                </form>
+                <p>Select a geometry type from the dropdown above to start drawing. To finish drawing, click the last point. To activate freehand drawing for lines, polygons, and circles, hold the <code>Shift</code> key.</p>
+            </div>
         </div>
         <div class="menu-options rounded"></div>
     </section>
