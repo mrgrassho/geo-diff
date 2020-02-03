@@ -30,6 +30,7 @@ public class GeoDiffService {
 
     // TODO: Replace constants with configuration file.
     private static final boolean CLOUDSCORE = true;
+    private static final boolean CLOUDSCORE_MAX = 0.2;
     private static final Double DIMENSION = 0.025;
     private static final String API_KEY = "6k9ilibCQcusmZl9RRczizWjFC7K0gkviEt2G4Qa";
     private static final String TASK_QUEUE_NAME = "TASK_QUEUE";
@@ -53,6 +54,7 @@ public class GeoDiffService {
         try {
             String beginDateStr = (beginDate != null) ? df.format(beginDate): null;
             String endDateStr = (endDate != null) ? df.format(endDate): null;
+            coordinates = transformBoxToList(coordinates);
             for (Coordinate coord : coordinates) {
                 EarthAssets eas = nasaApi.getEarthAssets(coord.getLatitude(), coord.getLongitude(), beginDateStr, endDateStr);
                 eas.setCoordinate(coord);
@@ -62,12 +64,15 @@ public class GeoDiffService {
                             GeoImage gi;
                             if (null == (gi = geoImageRepository.findByCoordinateDateAndFilter(coord.getLatitude(), coord.getLongitude(), regexBeginWith(ea.getDate().split("T")[0]), "RAW"))) {
                                 EarthImage e = nasaApi.getEarthImage(coord.getLatitude(), coord.getLongitude(), DIMENSION, ea.getDate().split("T")[0], CLOUDSCORE);
-                                e.setCoordinate(coord);
-                                e.setDim(DIMENSION);
-                                gi = new GeoImage();
-                                gi.setEarthImage(e);
-                                gi.setFilterOption(filterOptionRepository.findByName("RAW"));
-                                geoImageRepository.save(gi);
+                                // Si es una imagen muy nublada no la guardamos.
+                                if (e.getCloudScore() < CLOUDSCORE_MAX) {
+                                  e.setCoordinate(coord);
+                                  e.setDim(DIMENSION);
+                                  gi = new GeoImage();
+                                  gi.setEarthImage(e);
+                                  gi.setFilterOption(filterOptionRepository.findByName("RAW"));
+                                  geoImageRepository.save(gi);
+                                }
                             }
                         } catch (IOException e) {
                             e.printStackTrace();
@@ -128,5 +133,23 @@ public class GeoDiffService {
 
     public String regexBeginWith(String str) {
         return "^" + str;
+    }
+
+    public static double divide(double x, double y){
+      return (int) ((x * 1000) / (y * 1000));
+    }
+
+    public ArrayList<Coordinate> transformBoxToList(ArrayList<Coordinate> coords){
+      for (Coordinate coord : coords){
+        coord.setLatitude( this.divide(coord.getLatitude(), DIMENSION));
+        coord.setLongitude( this.divide(coord.getLongitude(), DIMENSION));
+      }
+      ArrayList<Coordinate> tmp_list = new ArrayList<Coordinate>();
+      for (int i = coord.get(0).getLatitude(); i < coord.get(1).getLatitude(); i = i + DIMENSION){
+        for (int j = coord.get(0).getLongitude(); j < coord.get(1).getLongitude(); j = j + DIMENSION){
+          tmp_list.add(Coordinate(i, j));
+        }
+      }
+      return tmp_list;
     }
 }
