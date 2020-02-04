@@ -24,7 +24,7 @@ def coord_to_cube(x, y, n=STEP):
 
 def divide_coord(coord):
     """Returns coord divide by STEP size."""
-    return [((coord[0]*1000) // STEP*1000) * STEP, ((coord[1]*1000) // STEP*1000) * STEP]
+    return [coord[0] // STEP, coord[1] // STEP]
 
 def polygon_center(pol):
     return [ divide_coord(i) for i in pol ]

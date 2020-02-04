@@ -78,7 +78,7 @@ public class GeoController {
     }
 
     /**
-     *  Get an image resource.
+     *  Get a Base64 encoded Image.
      *
      *  @param    date         Date
      *  @param    latitude     -
@@ -96,7 +96,7 @@ public class GeoController {
             @RequestParam(name = "lon", required = true) Double longitude,
             @RequestParam(name = "filter", required = true) String filter ) throws GeoException
     {
-        return "data:image/png;base64," + geoDiffService.findGeoImage(latitude, longitude, date, filter).getEarthImage().getRawImageInBase64();
+        return geoDiffService.findGeoImage(latitude, longitude, date, filter).getEarthImage().getRawImageInBase64();
     }
 
     /**
@@ -107,15 +107,17 @@ public class GeoController {
     public String newMapExample(Model model) throws GeoException
     {
         ArrayList<Coordinate> a = new ArrayList<>();
-        a.add(new Coordinate(-3.756, -62.153));
-        a.add(new Coordinate(-3.756, -62.163));
+        a.add(new Coordinate(1.5538599350392837, 100.72591781616211));
+        a.add(new Coordinate(1.5538599350392837, 100.75063705444336));
+        a.add(new Coordinate(1.5753096072435775, 100.75063705444336));
+        a.add(new Coordinate(1.5753096072435775, 100.72591781616211));
+        a.add(new Coordinate(1.5538599350392837, 100.72591781616211));
         Date d = null;
         try {
-            d = new SimpleDateFormat("yyyy-MM-dd").parse("2017-01-01");
+            d = new SimpleDateFormat("yyyy-MM-dd").parse("2014-02-04");
         } catch (ParseException e) {
             e.printStackTrace();
         }
         return this.newMap(d,null, a, model);
     }
-
 }

@@ -63,7 +63,7 @@ public class EarthImage {
 
     public String getRawImageInBase64()
     {
-        return Base64.getEncoder().encodeToString(this.getRawImage());
+        return "data:image/png;base64," + Base64.getEncoder().encodeToString(this.getRawImage());
     }
 
     public Coordinate getCoordinate() {

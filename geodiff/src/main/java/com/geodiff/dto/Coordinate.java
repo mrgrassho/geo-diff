@@ -7,8 +7,8 @@ public class Coordinate {
     public Coordinate() { }
 
     public Coordinate(Double latitude,Double longitude){
-        this.latitude = latitude;
-        this.longitude = longitude;
+        this.latitude = Double.parseDouble(String.format("%.3f", latitude));
+        this.longitude = Double.parseDouble(String.format("%.3f", longitude));
     }
 
     public Double getLatitude() {
@@ -25,5 +25,10 @@ public class Coordinate {
 
     public void setLongitude(Double longitude) {
         this.longitude = longitude;
+    }
+
+    @Override
+    public String toString() {
+        return "["+getLatitude()+","+getLongitude()+"]";
     }
 }

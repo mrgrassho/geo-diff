@@ -30,7 +30,7 @@ public class GeoDiffService {
 
     // TODO: Replace constants with configuration file.
     private static final boolean CLOUDSCORE = true;
-    private static final boolean CLOUDSCORE_MAX = 0.2;
+    private static final Double CLOUDSCORE_MAX = 0.2;
     private static final Double DIMENSION = 0.025;
     private static final String API_KEY = "6k9ilibCQcusmZl9RRczizWjFC7K0gkviEt2G4Qa";
     private static final String TASK_QUEUE_NAME = "TASK_QUEUE";
@@ -85,16 +85,18 @@ public class GeoDiffService {
             // SE ASUME QUE TODOS LOS earthAssets tienen la misma LONGITUD
             // REVISAR ESTO PARA QUE CARGUE UNA IMAGEN VACIA SI NO
             // se tiene el resultado
-            for (int i = 0; i < earthAssets.get(0).getCount(); i++) {
-                for (int j = 0; j < earthAssets.size(); j++) {
-                    ArrayList<GeoAsset> ga;
-                    if (null == (ga = geoAssets.get(String.valueOf(i)))) {
-                        ga = new ArrayList<>();
+            if (!earthAssets.isEmpty()){
+                for (int i = 0; i < earthAssets.get(0).getCount(); i++) {
+                    for (int j = 0; j < earthAssets.size(); j++) {
+                        ArrayList<GeoAsset> ga;
+                        if (null == (ga = geoAssets.get(String.valueOf(i)))) {
+                            ga = new ArrayList<>();
+                        }
+                        String date = earthAssets.get(j).getResults().get(i).getDate();
+                        Coordinate coord = earthAssets.get(j).getCoordinate();
+                        ga.add(new GeoAsset(date, coord));
+                        geoAssets.put(String.valueOf(i), ga);
                     }
-                    String date = earthAssets.get(j).getResults().get(i).getDate();
-                    Coordinate coord = earthAssets.get(j).getCoordinate();
-                    ga.add(new GeoAsset(date, coord));
-                    geoAssets.put(String.valueOf(i), ga);
                 }
             }
 
@@ -128,28 +130,48 @@ public class GeoDiffService {
 
     public GeoImage findGeoImage(Double lat, Double lon, Date t, String nameFilter) throws GeoException {
         if ( lat == null  || lon == null || t == null || nameFilter == null) throw new GeoException("Null params found.") ;
-        return geoImageRepository.findByCoordinateAndDateAndFilter(lat, lon, timestamp.format(t), nameFilter);
+        Coordinate coord = this.nearCoordinate(new Coordinate(lat, lon));
+        return geoImageRepository.findByCoordinateAndDateAndFilter(coord.getLatitude(), coord.getLongitude(), timestamp.format(t), nameFilter);
     }
 
     public String regexBeginWith(String str) {
         return "^" + str;
     }
 
-    public static double divide(double x, double y){
-      return (int) ((x * 1000) / (y * 1000));
+    public double getNearPoint(double x, double y){
+        if ((x * 1000) % (y * 1000) == 0) {
+            return (double) ((int) ((x * 1000) / (y * 1000)) * (y * 1000) ) / 1000;
+        } else {
+            return (double) ((int) ((x * 1000) / (y * 1000)) * (y * 1000) + (y * 1000)) / 1000;
+        }
+    }
+
+    /**
+     *  Get the coordinate that is saved in the DB which is the near coordinate
+     *  of the requested one.
+     *
+     *  @param    coord        Coordinate.
+     *  @return                Coordinate.
+     * */
+    public Coordinate nearCoordinate(Coordinate coord){
+        Coordinate c =  new Coordinate();
+        c.setLatitude( this.getNearPoint(coord.getLatitude(), DIMENSION));
+        c.setLongitude( this.getNearPoint(coord.getLongitude(), DIMENSION));
+        return c;
     }
 
     public ArrayList<Coordinate> transformBoxToList(ArrayList<Coordinate> coords){
-      for (Coordinate coord : coords){
-        coord.setLatitude( this.divide(coord.getLatitude(), DIMENSION));
-        coord.setLongitude( this.divide(coord.getLongitude(), DIMENSION));
-      }
-      ArrayList<Coordinate> tmp_list = new ArrayList<Coordinate>();
-      for (int i = coord.get(0).getLatitude(); i < coord.get(1).getLatitude(); i = i + DIMENSION){
-        for (int j = coord.get(0).getLongitude(); j < coord.get(1).getLongitude(); j = j + DIMENSION){
-          tmp_list.add(Coordinate(i, j));
+        for (int i = 0; i < coords.size(); i++) {
+            coords.set(i, nearCoordinate(coords.get(i)));
         }
-      }
-      return tmp_list;
+
+        ArrayList<Coordinate> tmp_list = new ArrayList<Coordinate>();
+        for (double i = coords.get(0).getLatitude(); i < coords.get(1).getLatitude(); i = i + DIMENSION){
+            for (double j = coords.get(0).getLongitude(); j < coords.get(3).getLongitude(); j = j + DIMENSION){
+                tmp_list.add(new Coordinate(i, j));
+            }
+        }
+        System.out.println(tmp_list);
+        return tmp_list;
     }
 }
