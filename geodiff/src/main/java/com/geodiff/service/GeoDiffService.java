@@ -58,29 +58,34 @@ public class GeoDiffService {
             for (Coordinate coord : coordinates) {
                 EarthAssets eas = nasaApi.getEarthAssets(coord.getLatitude(), coord.getLongitude(), beginDateStr, endDateStr);
                 eas.setCoordinate(coord);
-                if (eas.getCount() > 0) {
-                    for (EarthAssets.EarthAsset ea: eas.getResults()) {
-                        try {
-                            GeoImage gi;
-                            if (null == (gi = geoImageRepository.findByCoordinateDateAndFilter(coord.getLatitude(), coord.getLongitude(), regexBeginWith(ea.getDate().split("T")[0]), "RAW"))) {
-                                EarthImage e = nasaApi.getEarthImage(coord.getLatitude(), coord.getLongitude(), DIMENSION, ea.getDate().split("T")[0], CLOUDSCORE);
-                                // Si es una imagen muy nublada no la guardamos.
-                                if (e.getCloudScore() < CLOUDSCORE_MAX) {
-                                  e.setCoordinate(coord);
-                                  e.setDim(DIMENSION);
-                                  gi = new GeoImage();
-                                  gi.setEarthImage(e);
-                                  gi.setFilterOption(filterOptionRepository.findByName("RAW"));
-                                  geoImageRepository.save(gi);
-                                }
-                            }
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }
                 earthAssets.add(eas);
             }
+
+            for (EarthAssets eas: earthAssets) {
+                if (eas.getCount() > 0) {
+                    EarthAssets.EarthAsset ea = eas.getResults().get(0);
+                    try {
+                        GeoImage gi;
+                        if (null == (gi = geoImageRepository.findByCoordinateDateAndFilter(eas.getCoordinate().getLatitude(), eas.getCoordinate().getLongitude(), regexBeginWith(ea.getDate().split("T")[0]), "RAW"))) {
+                            EarthImage e = nasaApi.getEarthImage(eas.getCoordinate().getLatitude(), eas.getCoordinate().getLongitude(), DIMENSION, ea.getDate().split("T")[0], CLOUDSCORE);
+                            // Si es una imagen muy nublada no la guardamos.
+                            if (e.getCloudScore() < CLOUDSCORE_MAX) {
+                                e.setCoordinate(eas.getCoordinate());
+                                e.setDim(DIMENSION);
+                                gi = new GeoImage();
+                                gi.setEarthImage(e);
+                                gi.setFilterOption(filterOptionRepository.findByName("RAW"));
+                                geoImageRepository.save(gi);
+                                this.sendTaskToQueue(gi);
+                            }
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    eas.removeResult(ea);
+                }
+            }
+
 
             // SE ASUME QUE TODOS LOS earthAssets tienen la misma LONGITUD
             // REVISAR ESTO PARA QUE CARGUE UNA IMAGEN VACIA SI NO
@@ -116,8 +121,8 @@ public class GeoDiffService {
     }
 
 
-    public void sendTaskToQueue(EarthImage ei) throws IOException {
-        String m = gson.toJson(ei);
+    public void sendTaskToQueue(GeoImage gi) throws IOException {
+        String m = gson.toJson(gi);
         channel.basicPublish("", TASK_QUEUE_NAME,
                     MessageProperties.PERSISTENT_TEXT_PLAIN,
                     m.getBytes("UTF-8"));

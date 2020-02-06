@@ -16,6 +16,7 @@ public class DatabaseChangelog {
         filterOpt.insert("{name: 'DROUGHT', longName: 'Drought filtered Image'}");
         filterOpt.insert("{name: 'DEFORESTATION', longName: 'Deforestation filtered Image'}");
         filterOpt.insert("{name: 'URBANIZATION', longName: 'Urbanization filtered Image'}");
+        filterOpt.insert("{name: 'FLOODING', longName: 'Flooding filtered Image'}");
     }
 
 

@@ -18,7 +18,7 @@ public class EarthImage {
     private double cloudScore;
     private Coordinate coordinate;
     private Double dim;
-    private byte[] rawImage;
+    private String rawImage;
 
     public String getDate() {
         return date;
@@ -43,7 +43,7 @@ public class EarthImage {
                     .build();
             Response response = null;
             response = client.newCall(request).execute();
-            this.setRawImage(response.body().bytes());
+            this.setRawImage("data:image/png;base64," + Base64.getEncoder().encodeToString(response.body().bytes()));
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -53,17 +53,12 @@ public class EarthImage {
         setImageByUrl(this.url, client);
     }
 
-    public void setRawImage(byte[] rawImage) {
+    public void setRawImage(String rawImage) {
         this.rawImage = rawImage;
     }
 
-    public byte[] getRawImage() {
+    public String getRawImage() {
         return this.rawImage;
-    }
-
-    public String getRawImageInBase64()
-    {
-        return "data:image/png;base64," + Base64.getEncoder().encodeToString(this.getRawImage());
     }
 
     public Coordinate getCoordinate() {

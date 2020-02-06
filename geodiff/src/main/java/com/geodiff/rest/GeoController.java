@@ -96,7 +96,7 @@ public class GeoController {
             @RequestParam(name = "lon", required = true) Double longitude,
             @RequestParam(name = "filter", required = true) String filter ) throws GeoException
     {
-        return geoDiffService.findGeoImage(latitude, longitude, date, filter).getEarthImage().getRawImageInBase64();
+        return geoDiffService.findGeoImage(latitude, longitude, date, filter).getEarthImage().getRawImage();
     }
 
     /**

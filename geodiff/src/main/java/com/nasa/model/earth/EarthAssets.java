@@ -27,6 +27,10 @@ public final class EarthAssets {
         this.coordinate = coordinate;
     }
 
+    public void removeResult(EarthAsset ea) {
+        results.remove(ea);
+    }
+
     public static final class EarthAsset {
 
         private String date;

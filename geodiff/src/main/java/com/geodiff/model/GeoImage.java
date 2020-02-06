@@ -10,6 +10,8 @@ public class GeoImage {
 
     private FilterOption filterOption;
 
+    private String vectorImage;
+
     public GeoImage () {}
 
     public EarthImage getEarthImage() {
@@ -35,4 +37,13 @@ public class GeoImage {
     public void setId(Long id) {
         Id = id;
     }
+
+    public String getVectorImage() {
+        return vectorImage;
+    }
+
+    public void setVectorImage(String vectorImage) {
+        this.vectorImage = vectorImage;
+    }
+
 }
