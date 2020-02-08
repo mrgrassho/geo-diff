@@ -31,9 +31,19 @@
 
 #### RabbitMQ
 
-- [ ] Armar Arquitectura RabbitMQ.
+- [X] Armar Arquitectura RabbitMQ.
 
 #### MongoDB
 
 - [X] Arreglar Query Regex en MongoRepository (No obtiene bien el resultado).
 - [ ] Cambiar la forma de realizar un query sobre una coordenada. (Basarse en una coordenada aproximada, [coord + - una constante]). ALTERNATIVA: Estudiar BDs arcGIS.
+
+## Versión 2.0
+
+#### Worker
+
+- [ ] Reducir tamaño de imagen de Docker (~2.5 GB). Se va al carajo.
+
+#### Backend
+
+- [ ] Arreglar variables de entorno application.properties para mongobee.
