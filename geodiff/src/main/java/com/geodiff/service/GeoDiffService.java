@@ -1,6 +1,7 @@
 package com.geodiff.service;
 
 
+import com.geodiff.AppConfig;
 import com.geodiff.dto.Coordinate;
 import com.geodiff.dto.GeoAsset;
 import com.geodiff.dto.GeoException;
@@ -11,35 +12,35 @@ import com.google.gson.Gson;
 import com.nasa.NasaApi;
 import com.nasa.model.earth.EarthAssets;
 import com.nasa.model.earth.EarthImage;
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.ConnectionFactory;
-import com.rabbitmq.client.GetResponse;
-import com.rabbitmq.client.MessageProperties;
+import com.rabbitmq.client.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.PropertySource;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.concurrent.TimeoutException;
 
 @Service
+@PropertySource("classpath:application.properties")
 public class GeoDiffService {
 
-    // TODO: Replace constants with configuration file.
     private static final boolean CLOUDSCORE = true;
-    private static final Double CLOUDSCORE_MAX = 0.2;
     private static final Double DIMENSION = 0.025;
-    private static final String API_KEY = "6k9ilibCQcusmZl9RRczizWjFC7K0gkviEt2G4Qa";
-    private static final String TASK_QUEUE_NAME = "TASK_QUEUE";
-    private static final String RESULT_QUEUE_NAME = "RESULT_QUEUE";
-
     private final DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
     private final DateFormat timestamp = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
     private Channel channel;
     private Gson gson;
+    private Logger logger = LoggerFactory.getLogger(GeoDiffService.class);
 
     @Autowired
     private GeoImageRepository geoImageRepository;
@@ -47,14 +48,24 @@ public class GeoDiffService {
     @Autowired
     private FilterOptionRepository filterOptionRepository;
 
+    @Autowired
+    public AppConfig appConfig;
+
+    @Autowired
+    public void initRabbitmq() throws URISyntaxException, KeyManagementException, TimeoutException, NoSuchAlgorithmException, IOException {
+        this.initQueues();
+        this.getResultFromQueue();
+    }
+
     public HashMap<String, ArrayList<GeoAsset>> createMap(ArrayList<Coordinate> coordinates, Date beginDate, Date endDate) throws GeoException {
-        NasaApi nasaApi = new NasaApi(API_KEY);
+        NasaApi nasaApi = new NasaApi(appConfig.configData().API_KEY);
         ArrayList<EarthAssets> earthAssets = new ArrayList<>();
         HashMap<String, ArrayList<GeoAsset>> geoAssets =  new HashMap<>();
         try {
             String beginDateStr = (beginDate != null) ? df.format(beginDate): null;
             String endDateStr = (endDate != null) ? df.format(endDate): null;
             coordinates = transformBoxToList(coordinates);
+            logger.info(" - Process Order Arrived - Quantity: " + coordinates.size() + ", BeginDate: " + beginDateStr + ", EndDate:  " + endDateStr);
             for (Coordinate coord : coordinates) {
                 EarthAssets eas = nasaApi.getEarthAssets(coord.getLatitude(), coord.getLongitude(), beginDateStr, endDateStr);
                 eas.setCoordinate(coord);
@@ -69,7 +80,7 @@ public class GeoDiffService {
                         if (null == (gi = geoImageRepository.findByCoordinateDateAndFilter(eas.getCoordinate().getLatitude(), eas.getCoordinate().getLongitude(), regexBeginWith(ea.getDate().split("T")[0]), "RAW"))) {
                             EarthImage e = nasaApi.getEarthImage(eas.getCoordinate().getLatitude(), eas.getCoordinate().getLongitude(), DIMENSION, ea.getDate().split("T")[0], CLOUDSCORE);
                             // Si es una imagen muy nublada no la guardamos.
-                            if (e.getCloudScore() < CLOUDSCORE_MAX) {
+                            if (e.getCloudScore() < appConfig.configData().CLOUDSCORE_MAX) {
                                 e.setCoordinate(eas.getCoordinate());
                                 e.setDim(DIMENSION);
                                 gi = new GeoImage();
@@ -114,23 +125,35 @@ public class GeoDiffService {
         }
     }
 
-    public void initQueue() throws IOException {
+    public void initQueues() throws IOException, TimeoutException, NoSuchAlgorithmException, KeyManagementException, URISyntaxException {
         ConnectionFactory factory = new ConnectionFactory();
-        factory.setHost("localhost");
-        this.channel.queueDeclare(TASK_QUEUE_NAME, true, false, false, null);
+        factory.setUri( appConfig.configData().AMQP_URI);
+        Connection connection = factory.newConnection();
+        this.channel = connection.createChannel();
+        this.channel.queueDeclare( appConfig.configData().TASK_QUEUE_NAME, true, false, false, null);
+        this.channel.queueDeclare( appConfig.configData().RESULT_QUEUE_NAME, true, false, false, null);
+        logger.info(" - Queues Declared: " + appConfig.configData().TASK_QUEUE_NAME + ", " + appConfig.configData().RESULT_QUEUE_NAME);
     }
 
 
     public void sendTaskToQueue(GeoImage gi) throws IOException {
         String m = gson.toJson(gi);
-        channel.basicPublish("", TASK_QUEUE_NAME,
+        channel.basicPublish("",  appConfig.configData().TASK_QUEUE_NAME,
                     MessageProperties.PERSISTENT_TEXT_PLAIN,
                     m.getBytes("UTF-8"));
     }
 
-    public EarthImage getResultFromQueue() throws IOException {
-        GetResponse res = channel.basicGet(RESULT_QUEUE_NAME, true);
-        return gson.fromJson(res.getBody().toString(), EarthImage.class);
+    public void getResultFromQueue() throws IOException {
+
+        logger.info(" - Waiting for messages. To exit press CTRL+C");
+
+        DeliverCallback deliverCallback = (consumerTag, delivery) -> {
+            String message = new String(delivery.getBody(), "UTF-8");
+            logger.info(" [*] New Image arrived. DATA: " + message.substring(0,60));
+            GeoImage gi = gson.fromJson(message, GeoImage.class);
+            geoImageRepository.save(gi);
+        };
+        channel.basicConsume( appConfig.configData().RESULT_QUEUE_NAME, true, deliverCallback, consumerTag -> { });
     }
 
     public GeoImage findGeoImage(Double lat, Double lon, Date t, String nameFilter) throws GeoException {
@@ -176,7 +199,7 @@ public class GeoDiffService {
                 tmp_list.add(new Coordinate(i, j));
             }
         }
-        System.out.println(tmp_list);
+        logger.info(" BoxToList -> " + tmp_list);
         return tmp_list;
     }
 }

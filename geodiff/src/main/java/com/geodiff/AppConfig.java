@@ -12,8 +12,8 @@ import org.springframework.context.annotation.PropertySource;
 public class AppConfig {
 
     @Bean
-    public MyBean myBean () {
-        return new MyBean();
+    public ConfigData configData () {
+        return new ConfigData();
     }
 
     @Bean
@@ -24,42 +24,45 @@ public class AppConfig {
     @Bean
     public Mongobee mongobee(){
         Mongobee runner = null;
-        myBean().getMongoChangelogs();
-        String connString = "mongodb://" + myBean().getMongoHost() + ":" + myBean().mongoPort + "/"+ myBean().mongoDb;
+        String connString = "mongodb://" + configData().mongoUser + ":" + configData().mongoPass + "@" + configData().mongoHost + ":" + configData().mongoPort + "/"+ configData().mongoDb;
         runner = new Mongobee(connString);
-        runner.setChangeLogsScanPackage(myBean().getMongoChangelogs());
+        runner.setChangeLogsScanPackage(configData().mongoChangelogs);
         return runner;
     }
 
-    public static class MyBean {
+    public class ConfigData {
+        @Value("${spring.data.mongodb.username}")
+        public String mongoUser;
+
+        @Value("${spring.data.mongodb.password}")
+        public String mongoPass;
+
         @Value("${spring.data.mongodb.host}")
-        private String mongoHost;
+        public String mongoHost;
 
         @Value("${spring.data.mongodb.port}")
-        private String mongoPort;
+        public String mongoPort;
 
         @Value("${spring.data.mongodb.database}")
-        private String mongoDb;
+        public String mongoDb;
 
         @Value("${spring.data.mongobee.changelogs}")
-        private String mongoChangelogs;
+        public String mongoChangelogs;
 
+        @Value("${spring.data.rabbitmq.amqp_uri}")
+        public String AMQP_URI;
 
-        public String getMongoHost() {
-            return mongoHost;
-        }
+        @Value("#{new Double('${spring.data.nasa.cloudscore_max}')}")
+        public Double CLOUDSCORE_MAX;
 
-        public String getMongoPort() {
-            return mongoPort;
-        }
+        @Value("${spring.data.nasa.api_token}")
+        public String API_KEY;
 
-        public String getMongoDb() {
-            return mongoDb;
-        }
+        @Value("${spring.data.rabbitmq.task_queue}")
+        public String TASK_QUEUE_NAME;
 
-        public String getMongoChangelogs() {
-            return mongoChangelogs;
-        }
+        @Value("${spring.data.rabbitmq.res_queue}")
+        public String RESULT_QUEUE_NAME;
     }
 
 

@@ -4,6 +4,8 @@ import com.geodiff.dto.Coordinate;
 import com.geodiff.dto.GeoAsset;
 import com.geodiff.dto.GeoException;
 import com.geodiff.service.GeoDiffService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -24,6 +26,8 @@ import java.util.HashMap;
 @CrossOrigin
 @Scope("session")
 public class GeoController {
+
+    private Logger logger = LoggerFactory.getLogger(GeoController.class);
 
     @Autowired
     GeoDiffService geoDiffService;
@@ -51,6 +55,7 @@ public class GeoController {
             @RequestBody ArrayList<Coordinate> coordinates,
             Model model) throws GeoException
     {
+        logger.info(" [+] Request arrived. ");
         HashMap<String, ArrayList<GeoAsset>> GeoAssets = geoDiffService.createMap(coordinates, beginDate, endDate);
         model.addAttribute("GeoAssets", GeoAssets);
         return "results";
