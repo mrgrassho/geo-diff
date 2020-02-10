@@ -13,6 +13,7 @@ import com.nasa.NasaApi;
 import com.nasa.model.earth.EarthAssets;
 import com.nasa.model.earth.EarthImage;
 import com.rabbitmq.client.*;
+import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,7 +36,6 @@ import java.util.concurrent.TimeoutException;
 public class GeoDiffService {
 
     private static final boolean CLOUDSCORE = true;
-    private static final Double DIMENSION = 0.025;
     private final DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
     private final DateFormat timestamp = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
     private Channel channel;
@@ -78,11 +78,11 @@ public class GeoDiffService {
                     try {
                         GeoImage gi;
                         if (null == (gi = geoImageRepository.findByCoordinateDateAndFilter(eas.getCoordinate().getLatitude(), eas.getCoordinate().getLongitude(), regexBeginWith(ea.getDate().split("T")[0]), "RAW"))) {
-                            EarthImage e = nasaApi.getEarthImage(eas.getCoordinate().getLatitude(), eas.getCoordinate().getLongitude(), DIMENSION, ea.getDate().split("T")[0], CLOUDSCORE);
+                            EarthImage e = nasaApi.getEarthImage(eas.getCoordinate().getLatitude(), eas.getCoordinate().getLongitude(), appConfig.configData().DIMENSION, ea.getDate().split("T")[0], CLOUDSCORE);
                             // Si es una imagen muy nublada no la guardamos.
                             if (e.getCloudScore() < appConfig.configData().CLOUDSCORE_MAX) {
                                 e.setCoordinate(eas.getCoordinate());
-                                e.setDim(DIMENSION);
+                                e.setDim(appConfig.configData().DIMENSION);
                                 gi = new GeoImage();
                                 gi.setEarthImage(e);
                                 gi.setFilterOption(filterOptionRepository.findByName("RAW"));
@@ -103,22 +103,23 @@ public class GeoDiffService {
             // se tiene el resultado
             if (!earthAssets.isEmpty()){
                 for (int i = 0; i < earthAssets.get(0).getCount(); i++) {
+                    String groupDate = "";
                     for (int j = 0; j < earthAssets.size(); j++) {
                         ArrayList<GeoAsset> ga;
                         if (null == (ga = geoAssets.get(String.valueOf(i)))) {
                             ga = new ArrayList<>();
                         }
-                        String date = earthAssets.get(j).getResults().get(i).getDate();
+                        String date = earthAssets.get(j).getResults().get(i).getDate().split("T")[0];
+                        groupDate = (Integer.valueOf(DateTime.parse(date).dayOfMonth().toString()) < 16) ? df.format(DateTime.parse(date).withDayOfMonth(1)) : df.format(DateTime.parse(date).withDayOfMonth(16));
                         Coordinate coord = earthAssets.get(j).getCoordinate();
                         ga.add(new GeoAsset(date, coord));
-                        geoAssets.put(String.valueOf(i), ga);
+                        geoAssets.put(groupDate, ga);
                     }
+                    logger.info(" [*] New Coordinates Group. Key: " + groupDate + ", Qty: " + geoAssets.get(groupDate).size());
                 }
             }
 
             return geoAssets;
-
-            // Cliente RabbitMQ envia trabajos a la TASK QUEUE
 
         } catch (IOException e) {
             throw new GeoException(e.getMessage());
@@ -167,7 +168,7 @@ public class GeoDiffService {
     }
 
     public double getNearPoint(double x, double y){
-        if ((x * 1000) % (y * 1000) == 0) {
+        if ((x * 1000) % (y * 1000) != 0) {
             return (double) ((int) ((x * 1000) / (y * 1000)) * (y * 1000) ) / 1000;
         } else {
             return (double) ((int) ((x * 1000) / (y * 1000)) * (y * 1000) + (y * 1000)) / 1000;
@@ -183,19 +184,20 @@ public class GeoDiffService {
      * */
     public Coordinate nearCoordinate(Coordinate coord){
         Coordinate c =  new Coordinate();
-        c.setLatitude( this.getNearPoint(coord.getLatitude(), DIMENSION));
-        c.setLongitude( this.getNearPoint(coord.getLongitude(), DIMENSION));
+        c.setLatitude( this.getNearPoint(coord.getLatitude(), appConfig.configData().DIMENSION));
+        c.setLongitude( this.getNearPoint(coord.getLongitude(), appConfig.configData().DIMENSION));
         return c;
     }
 
     public ArrayList<Coordinate> transformBoxToList(ArrayList<Coordinate> coords){
+        logger.info(" Initial coords -> " + coords);
         for (int i = 0; i < coords.size(); i++) {
             coords.set(i, nearCoordinate(coords.get(i)));
         }
-
+        logger.info(" Centered coords -> " + coords);
         ArrayList<Coordinate> tmp_list = new ArrayList<Coordinate>();
-        for (double i = coords.get(0).getLatitude(); i < coords.get(1).getLatitude(); i = i + DIMENSION){
-            for (double j = coords.get(0).getLongitude(); j < coords.get(3).getLongitude(); j = j + DIMENSION){
+        for (double i = coords.get(0).getLongitude(); i <= coords.get(1).getLongitude(); i = i + appConfig.configData().DIMENSION){
+            for (double j = coords.get(0).getLatitude(); j <= coords.get(3).getLatitude(); j = j + appConfig.configData().DIMENSION){
                 tmp_list.add(new Coordinate(i, j));
             }
         }

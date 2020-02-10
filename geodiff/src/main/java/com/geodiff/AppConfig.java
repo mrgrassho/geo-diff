@@ -31,6 +31,7 @@ public class AppConfig {
     }
 
     public class ConfigData {
+
         @Value("${spring.data.mongodb.username}")
         public String mongoUser;
 
@@ -54,6 +55,9 @@ public class AppConfig {
 
         @Value("#{new Double('${spring.data.nasa.cloudscore_max}')}")
         public Double CLOUDSCORE_MAX;
+
+        @Value("#{new Double('${spring.data.nasa.dimension}')}")
+        public Double DIMENSION;
 
         @Value("${spring.data.nasa.api_token}")
         public String API_KEY;

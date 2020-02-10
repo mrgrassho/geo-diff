@@ -1,5 +1,7 @@
 package com.geodiff.rest;
 
+import com.geodiff.AppConfig;
+import com.geodiff.WebProperties;
 import com.geodiff.dto.Coordinate;
 import com.geodiff.dto.GeoAsset;
 import com.geodiff.dto.GeoException;
@@ -14,8 +16,6 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -32,33 +32,18 @@ public class GeoController {
     @Autowired
     GeoDiffService geoDiffService;
 
+    @Autowired
+    AppConfig appConfig;
+
+    @Autowired
+    WebProperties webProperties;
+
     @RequestMapping("/")
     public String getIndex(Model model) {
         model.asMap();
+        model.addAttribute("url", webProperties.getUrl() + "/geo");
+        model.addAttribute("dimension", appConfig.configData().DIMENSION);
         return "index";
-    }
-
-    /**
-     * Carga un nuevo mapa.
-     *
-     *  @param    beginDate         FechaDesde >= fecha.
-     *  @param    endDate           FechaHasta <= fecha.
-     *  @param    coordinates       Lista de coordenadas que se quieren procesar.
-     *  @return                     Lista de Imagenes.
-     * */
-    @PostMapping("/new-map")
-    public String newMap(
-            @RequestParam(name = "begin-date", required = false)
-            @DateTimeFormat(pattern = "yyyy-MM-dd") Date beginDate,
-            @RequestParam(name = "end-date", required = false)
-            @DateTimeFormat(pattern = "yyyy-MM-dd") Date endDate,
-            @RequestBody ArrayList<Coordinate> coordinates,
-            Model model) throws GeoException
-    {
-        logger.info(" [+] Request arrived. ");
-        HashMap<String, ArrayList<GeoAsset>> GeoAssets = geoDiffService.createMap(coordinates, beginDate, endDate);
-        model.addAttribute("GeoAssets", GeoAssets);
-        return "results";
     }
 
     /**
@@ -72,13 +57,14 @@ public class GeoController {
     @PostMapping("/img-assets")
     @ResponseBody
     @ResponseStatus(HttpStatus.OK)
-    public HashMap<String, ArrayList<GeoAsset>> getAssets(
+    public HashMap<String, ArrayList<GeoAsset>> newMap(
             @RequestParam(name = "begin-date", required = false)
             @DateTimeFormat(pattern = "yyyy-MM-dd") Date beginDate,
             @RequestParam(name = "end-date", required = false)
             @DateTimeFormat(pattern = "yyyy-MM-dd") Date endDate,
             @RequestBody ArrayList<Coordinate> coordinates) throws GeoException
     {
+        logger.info(" [+] Request arrived. Coordinates: " + coordinates );
         return geoDiffService.createMap(coordinates, beginDate, endDate);
     }
 
@@ -89,7 +75,7 @@ public class GeoController {
      *  @param    latitude     -
      *  @param    longitude    -
      *  @param    filter       Filter applied to the image defined in FilterOption.
-     *  @return                GeoImage result.
+     *  @return
      * */
     @GetMapping("/img")
     @ResponseBody
@@ -105,24 +91,24 @@ public class GeoController {
     }
 
     /**
-     * Carga un nuevo mapa con parametros hardcodeados.
+     *  Get a Vector of Image with filter applied.
      *
+     *  @param    date         Date
+     *  @param    latitude     -
+     *  @param    longitude    -
+     *  @param    filter       Filter applied to the image defined in FilterOption.
+     *  @return                GeoImage result.
      * */
-    @GetMapping("/new-map-example")
-    public String newMapExample(Model model) throws GeoException
+    @GetMapping("/vector")
+    @ResponseBody
+    @ResponseStatus(HttpStatus.OK)
+    public String getVector(
+            @RequestParam(name = "date", required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss") Date date,
+            @RequestParam(name = "lat", required = true) Double latitude,
+            @RequestParam(name = "lon", required = true) Double longitude,
+            @RequestParam(name = "filter", required = true) String filter ) throws GeoException
     {
-        ArrayList<Coordinate> a = new ArrayList<>();
-        a.add(new Coordinate(1.5538599350392837, 100.72591781616211));
-        a.add(new Coordinate(1.5538599350392837, 100.75063705444336));
-        a.add(new Coordinate(1.5753096072435775, 100.75063705444336));
-        a.add(new Coordinate(1.5753096072435775, 100.72591781616211));
-        a.add(new Coordinate(1.5538599350392837, 100.72591781616211));
-        Date d = null;
-        try {
-            d = new SimpleDateFormat("yyyy-MM-dd").parse("2014-02-04");
-        } catch (ParseException e) {
-            e.printStackTrace();
-        }
-        return this.newMap(d,null, a, model);
+        return geoDiffService.findGeoImage(latitude, longitude, date, filter).getVectorImage();
     }
 }
