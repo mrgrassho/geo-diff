@@ -42,8 +42,10 @@
 
 #### Worker
 
+- [ ] Testear
 - [ ] Reducir tamaño de imagen de Docker (~2.5 GB). Se va al carajo.
 
 #### Backend
 
-- [ ] Arreglar variables de entorno application.properties para mongobee.
+- [x] Arreglar variables de entorno application.properties para mongobee.
+- [ ] Testear.
