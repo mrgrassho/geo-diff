@@ -1,16 +1,19 @@
-<html xmlns:th="http://www.thymeleaf.org" layout:decorate="~{layout.html}">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.w3.org/1999/xhtml"  layout:decorate="~{layout.html}">
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <title>Results | GeoDiff</title>
     <script th:inline="javascript">
-/*<![CDATA[*/
-        var GeoAssets = /*[[${GeoAssets}]]*/ 'default';
-/*]]>*/
+
     </script>
     <script th:inline="javascript">
       document.addEventListener('DOMContentLoaded', function(event) {
-          GeoImage.init();
-          GeoImage.Main(GeoAssets);
+/*<![CDATA[*/
+        var GeoAssets = /*[[${GeoAssets}]]*/ 'default';
+        let offset = [[${dimension}]];
+        let baseURL = "[[${url}]]";
+/*]]>*/
+        GeoImage.init(offset, baseURL);
+        GeoImage.Main(GeoAssets);
       });
     </script>
 </head>

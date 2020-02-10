@@ -1,5 +1,4 @@
 
-
 #Mongo Config
 spring.data.mongodb.host=localhost
 spring.data.mongodb.port=27017
@@ -17,6 +16,9 @@ spring.data.rabbitmq.task_queue=TASK_QUEUE
 # Nasa API
 spring.data.nasa.api_token=6k9ilibCQcusmZl9RRczizWjFC7K0gkviEt2G4Qa
 spring.data.nasa.cloudscore_max=0.2
+spring.data.nasa.dimension=0.025
 
 # Server Config
-server.port = 8097
+server.port=8097
+server.protocol=http
+server.host=localhost

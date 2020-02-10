@@ -1,10 +1,14 @@
-<html xmlns:layout="http://www.w3.org/1999/xhtml"  layout:decorate="~{layout.html}">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.w3.org/1999/xhtml"  layout:decorate="~{layout.html}">
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <title>GeoDiff | Comparing Surface</title>
     <script>
       document.addEventListener('DOMContentLoaded', function(event) {
-          GeoImage.init();
+          //<![CDATA[
+          let offset = [[${dimension}]];
+          let baseURL = "[[${url}]]";
+          /*]]>*/
+          GeoImage.init(offset, baseURL);
       });
     </script>
 </head>

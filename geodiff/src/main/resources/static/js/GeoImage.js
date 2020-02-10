@@ -14,8 +14,6 @@ var Static = ol.source.ImageStatic;
 var proj = ol.proj;
 var Ajax = Ajax;
 
-GeoImage.offset = 0.025;
-GeoImage.baseURL = "http://localhost:8080/geo";
 
 GeoImage.buildImgURL = function (date, lat, lon, filter) {
   date = date == null ? '': date;
@@ -56,16 +54,18 @@ GeoImage.getImg = function(date, coord, filter) {
   // LLAMADA AJAX PARA LA IMAGEN;
   Ajax.request( "GET", url, {}, function (xhr) {
   // LLEGA EL RECURSO Y SE AGREGA LA CAPA.
-    GeoImage.Map.addLayer(
-      new ImageLayer({
-        source: new Static({
-          imageLoadFunction : function(image){ image.getImage().src = xhr; },
-          crossOrigin: '',
-          projection: 'EPSG:3857',
-          imageExtent: [minLatLon[0], minLatLon[1], maxLatLon[0], maxLatLon[1]]
+    if (xhr != null) {
+      GeoImage.Map.addLayer(
+        new ImageLayer({
+          source: new Static({
+            imageLoadFunction : function(image){ image.getImage().src = xhr; },
+            crossOrigin: '',
+            projection: 'EPSG:3857',
+            imageExtent: [minLatLon[0], minLatLon[1], maxLatLon[0], maxLatLon[1]]
+          })
         })
-      })
-    );
+      );
+    }
   });
 }
 
@@ -101,10 +101,14 @@ GeoImage.Main = function (resources) {
   GeoImage.buildSlider();
 }
 
-GeoImage.init = function () {
+GeoImage.init = function (offset, baseURL) {
   var raster = new TileLayer({
     source: new OSM()
   });
+
+  console.log("Setting baseURL to " + baseURL);
+  GeoImage.offset  = offset;
+  GeoImage.baseURL = baseURL;
 
   var source = new VectorSource({wrapX: false});
 
