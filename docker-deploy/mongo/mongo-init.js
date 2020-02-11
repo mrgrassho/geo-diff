@@ -23,3 +23,10 @@ db.createUser({
     },
   ],
 });
+
+db.grantRolesToUser(
+    "admin",
+    [
+      { role: "readWrite", db: "geo-mongo" }
+    ]
+);
