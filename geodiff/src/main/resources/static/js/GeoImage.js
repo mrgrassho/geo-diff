@@ -42,8 +42,12 @@ GeoImage.getAssets = function (coords) {
   let url = GeoImage.buildImgAssets(beginDate, endDate);
   Ajax.request( "POST", url, coords, function (xhr) {
   // LLEGA EL RECURSO Y SE AGREGA LA CAPA.
-    console.log('Add Image Layer :', xhr)
-    GeoImage.Main(xhr);
+    if (xhr == {} || xhr == null) {
+        console.log('[!] No Results Found. Request: ' + url + " Body: " + coords)
+    } else  {
+        console.log('Add Image Layer :', xhr)
+        GeoImage.Main(xhr);
+    }
   });
 }
 
@@ -134,7 +138,7 @@ GeoImage.init = function (offset, baseURL) {
     layers: [raster, vector],
     target: 'map',
     view: new View({
-      center: proj.fromLonLat([-62.163, -3.756]),
+      center: proj.fromLonLat([-8.625, 18.3]),
       zoom: 11
     })
   });

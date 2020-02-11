@@ -14,6 +14,8 @@ import com.nasa.service.NearEarthObjectService;
 import com.squareup.okhttp.Headers;
 import com.squareup.okhttp.Interceptor;
 import com.squareup.okhttp.OkHttpClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import retrofit.Call;
 import retrofit.GsonConverterFactory;
 import retrofit.Response;
@@ -36,6 +38,8 @@ public final class NasaApi {
     private final Retrofit retrofit;
 
     private OkHttpClient client;
+
+    private Logger logger = LoggerFactory.getLogger(NasaApi.class);
 
     /**
      * The service instance used to get data regarding near earth objects.
@@ -91,8 +95,7 @@ public final class NasaApi {
         this.client.interceptors().add(new Interceptor() {
             @Override
             public com.squareup.okhttp.Response intercept(Chain chain) throws IOException {
-                System.out.print("INTERCEPTED DATA: ");
-                System.out.println(chain.request());
+                logger.info("INTERCEPTED DATA: " + chain.request());
                 return chain.proceed(chain.request());
             }
         });

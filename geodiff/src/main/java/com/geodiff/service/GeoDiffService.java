@@ -13,7 +13,8 @@ import com.nasa.NasaApi;
 import com.nasa.model.earth.EarthAssets;
 import com.nasa.model.earth.EarthImage;
 import com.rabbitmq.client.*;
-import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,10 +37,12 @@ import java.util.concurrent.TimeoutException;
 public class GeoDiffService {
 
     private static final boolean CLOUDSCORE = true;
-    private final DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+    private final String dateTimePattern =  "yyyy-MM-dd";
+    private final DateTimeFormatter dtf = DateTimeFormat.forPattern(dateTimePattern);
+    private final DateFormat df = new SimpleDateFormat(dateTimePattern);
     private final DateFormat timestamp = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
     private Channel channel;
-    private Gson gson;
+    private Gson gson = new Gson();
     private Logger logger = LoggerFactory.getLogger(GeoDiffService.class);
 
     @Autowired
@@ -73,8 +76,8 @@ public class GeoDiffService {
             }
 
             for (EarthAssets eas: earthAssets) {
-                if (eas.getCount() > 0) {
-                    EarthAssets.EarthAsset ea = eas.getResults().get(0);
+                for (int i = 0; i < eas.getCount(); i++) {
+                    EarthAssets.EarthAsset ea = eas.getResults().get(i);
                     try {
                         GeoImage gi;
                         if (null == (gi = geoImageRepository.findByCoordinateDateAndFilter(eas.getCoordinate().getLatitude(), eas.getCoordinate().getLongitude(), regexBeginWith(ea.getDate().split("T")[0]), "RAW"))) {
@@ -93,7 +96,6 @@ public class GeoDiffService {
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-                    eas.removeResult(ea);
                 }
             }
 
@@ -102,16 +104,16 @@ public class GeoDiffService {
             // REVISAR ESTO PARA QUE CARGUE UNA IMAGEN VACIA SI NO
             // se tiene el resultado
             if (!earthAssets.isEmpty()){
-                for (int i = 0; i < earthAssets.get(0).getCount(); i++) {
+                for (int i = 0; i < earthAssets.size(); i++) {
                     String groupDate = "";
-                    for (int j = 0; j < earthAssets.size(); j++) {
+                    for (int j = 0; j <  earthAssets.get(i).getCount(); j++) {
                         ArrayList<GeoAsset> ga;
-                        if (null == (ga = geoAssets.get(String.valueOf(i)))) {
+                        String date = earthAssets.get(i).getResults().get(j).getDate().split("T")[0];
+                        groupDate = (Integer.valueOf(dtf.parseDateTime(date).toString("dd")) < 16) ? dtf.parseDateTime(date).withDayOfMonth(1).toString(dateTimePattern) : dtf.parseDateTime(date).withDayOfMonth(16).toString(dateTimePattern);
+                        if (null == (ga = geoAssets.get(groupDate))) {
                             ga = new ArrayList<>();
                         }
-                        String date = earthAssets.get(j).getResults().get(i).getDate().split("T")[0];
-                        groupDate = (Integer.valueOf(DateTime.parse(date).dayOfMonth().toString()) < 16) ? df.format(DateTime.parse(date).withDayOfMonth(1)) : df.format(DateTime.parse(date).withDayOfMonth(16));
-                        Coordinate coord = earthAssets.get(j).getCoordinate();
+                        Coordinate coord = earthAssets.get(i).getCoordinate();
                         ga.add(new GeoAsset(date, coord));
                         geoAssets.put(groupDate, ga);
                     }
@@ -142,6 +144,7 @@ public class GeoDiffService {
         channel.basicPublish("",  appConfig.configData().TASK_QUEUE_NAME,
                     MessageProperties.PERSISTENT_TEXT_PLAIN,
                     m.getBytes("UTF-8"));
+        logger.info(" Image published to RabbitMQ Queue: " + m.substring(0, 120));
     }
 
     public void getResultFromQueue() throws IOException {
