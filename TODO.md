@@ -49,3 +49,6 @@
 
 - [x] Arreglar variables de entorno application.properties para mongobee.
 - [ ] Testear.
+
+#### Mongo
+- [ ] Revisar container que no esta tomando la configuracion de init-mongo.js

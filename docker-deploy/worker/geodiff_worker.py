@@ -20,6 +20,12 @@ import functools
 
 class GeoDiffWorker(object):
     """docstring for GeoDiffWorker."""
+    OPENCV_MAX_HUE = 179
+    OPENCV_MAX_SAT = 255
+    OPENCV_MAX_VAL = 255
+    GOOGLE_MAX_HUE = 360
+    GOOGLE_MAX_SAT = 100
+    GOOGLE_MAX_VAL = 100
 
     def __init__(self, amqp_url, task_queue, res_queue, prefetch_count=1, reconection_time=10, debug=True):
         self._amqp_url = amqp_url
@@ -32,7 +38,7 @@ class GeoDiffWorker(object):
         self._reconection_time = reconection_time
 
 
-    def applyFilter(self, image, filter):
+    def applyFilter(self, image, filter='DEFORESTATION'):
         """
         Apply Filter to Image (.png).
 
@@ -42,41 +48,66 @@ class GeoDiffWorker(object):
         :param image: Filter to apply.
         :type image: :class:`string`
         """
+        #import pdb; pdb.set_trace()
+        if (self._debug):
+            print(" [x] Applying {} filter to Image".format(filter))
         if (filter == 'DEFORESTATION'):
             # Filtra gama de verdes
-            lower_hsv = np.array([70,40,40])
-            upper_hsv = np.array([175,100,100])
+            lower_hsv = self.normalize_HSV(np.array([70,40,40]))
+            upper_hsv = self.normalize_HSV(np.array([106,100,100]))
         elif (filter == 'DROUGHT'):
             # Filtra gama de amarrillos / rojizos
-            lower_hsv = np.array([40,46,54])
-            upper_hsv = np.array([65,100,100])
+            lower_hsv = self.normalize_HSV(np.array([40,46,54]))
+            upper_hsv = self.normalize_HSV(np.array([65,100,100]))
         elif (filter == 'FLOODING'):
             # Filtra gama de azules / celestes
-            lower_hsv = np.array([183,41,51])
-            upper_hsv = np.array([254,100,100])
+            lower_hsv = self.normalize_HSV(np.array([183,41,51]))
+            upper_hsv = self.normalize_HSV(np.array([254,100,100]))
         else:
             # Filtra gama del blanco al negro
-            lower_hsv = np.array([0,40,100])
-            upper_hsv = np.array([360,0,100])
+            lower_hsv = self.normalize_HSV(np.array([0,40,100]))
+            upper_hsv = self.normalize_HSV(np.array([360,0,100]))
         img = self.data_uri_to_cv2_img(image)
-        blurredImage = cv2.blur(img,(5,5))
-        hsv = cv2.cvtColor(blurredImage,cv2.COLOR_RGB2HSV)
+        # blurredImage = cv2.blur(img,(2,2))
+        hsv = cv2.cvtColor(img,cv2.COLOR_RGB2HSV)
         mask = cv2.inRange(hsv, lower_hsv, upper_hsv)
+        # import pdb; pdb.set_trace()
+        if (self._debug):
+            print(" [x] Filter applied.")
         return mask
 
+    def normalize_HSV(self, ndarr):
+        # For HSV, Hue range is [0,179], Saturation range is [0,255]
+        # and Value range is [0,255]. Different softwares use different scales.
+        # So if you are comparing OpenCV values with them, you need to normalize
+        # these ranges.
+        return np.array([
+            self.GOOGLE_MAX_HUE / (self.OPENCV_MAX_HUE * ndarr[0]),
+            self.GOOGLE_MAX_SAT / (self.OPENCV_MAX_SAT * ndarr[1]),
+            self.GOOGLE_MAX_VAL / (self.OPENCV_MAX_VAL * ndarr[2])
+        ])
 
     def id_generator(self, size=28, chars=string.ascii_uppercase + string.digits):
         return ''.join(random.choice(chars) for _ in range(size))
 
 
     def pngToGeoJson(self, image_data, tmp=""):
+        """Transform png to GeoJson vector."""
+        if (self._debug):
+            print(" [x] Converting png to bitmap...")
         tmp = self.id_generator()
-        Image.frombytes('RGBA', (128,128), image_data, 'raw').save(tmp, format="bmp")
+        inputTmpBMP = tmp+".bmp"
         outputTmp = tmp+".geojson"
-        bashCommand = "./potrace -b geojson -i "+tmp+".bmp -o "+outputTmp
+        cv2.imwrite(inputTmpBMP, image_data)
+        if (self._debug):
+            print(" [x] --> Bitmap ready.")
+            print(" [x] Converting bitmap to vector (geoJson)...")
+        bashCommand = "./potrace -b geojson "+inputTmpBMP+" -o "+outputTmp
         subprocess.check_output(['bash','-c', bashCommand])
-        data = json.load(outputTmp)
-        subprocess.check_output(['bash','-c', "rm -rf "+tmp+" "+outputTmp])
+        data = geopandas.read_file(outputTmp)
+        if (self._debug):
+            print(" [x] --> geoJson ready.")
+        subprocess.check_output(['bash','-c', "rm -rf "+inputTmpBMP+" "+outputTmp])
         return data
 
 
@@ -93,19 +124,29 @@ class GeoDiffWorker(object):
         :param center: Coordinates Point([lon, lat]) to center polygons.
         :type center: :class:`shapely.geometry.Point`
         """
+        if (self._debug):
+            print(" [x] Scaling and joining polygons MultiPolygon...")
         m = MultiPolygon([polygons.loc[i].geometry for i in range(polygons.size)])
         g = geopandas.GeoSeries([m])
-        x = g.centroid.x - center.x if (g.centroid.x >= center.x) else center.x - g.centroid.x
-        y = g.centroid.y - center.y if (g.centroid.y >= center.y) else center.y - g.centroid.y
+        x = g.centroid.x[0] - center.x if (g.centroid.x[0] >= center.x) else center.x - g.centroid.x[0]
+        y = g.centroid.y[0] - center.y if (g.centroid.y[0] >= center.y) else center.y - g.centroid.y[0]
         origin = Point([x, y])
         g = g.scale(scale_x, scale_x, origin=origin)
+        if (self._debug):
+            print(" [x] MultiPolygon scaled.")
         return g.to_json()
 
 
     def data_uri_to_cv2_img(self, uri):
-        encoded_data = uri.split(',')[1]
-        nparr = np.fromstring(encoded_data.decode('base64'), np.uint8)
+        if (self._debug):
+            print(" [x] Converting Base64 String to image...")
+        e = uri.split(',')[1]
+        encoded_data = bytearray(e, 'utf-8')
+        nparr = np.fromstring(base64.b64decode(encoded_data), np.uint8)
+        # nparr = nparr.reshape(nparr.shape[0],1,)
         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        if (self._debug):
+            print(" [x] Conversion ready.")
         return img
 
 
@@ -124,7 +165,7 @@ class GeoDiffWorker(object):
             )
         )
         if (self._debug):
-            print(" [x] Sent {}".format(json_msg))
+            print(" [x] Image sent to {} - Body: {} ".format(queue, json_msg[:140]))
 
 
     def callback_task_queue(self, _unused_channel, delivery, properties, body):
@@ -132,7 +173,7 @@ class GeoDiffWorker(object):
         Callback triggered when message is received.
         """
         if (self._debug):
-            print(" [x] Received - Body: {}".format(body))
+            print(" [x] Received - Body: {}".format(body[:140]))
         start_time = time.time()
         data = json.loads(body)
         filteredImage = self.applyFilter(data['earthImage']['rawImage'])
