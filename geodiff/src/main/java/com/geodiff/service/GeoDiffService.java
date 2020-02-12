@@ -153,9 +153,9 @@ public class GeoDiffService {
 
         DeliverCallback deliverCallback = (consumerTag, delivery) -> {
             String message = new String(delivery.getBody(), "UTF-8");
-            logger.info(" [*] New Image arrived. DATA: " + message.substring(0,60));
             GeoImage gi = gson.fromJson(message, GeoImage.class);
             geoImageRepository.save(gi);
+            logger.info(" [*] New Image arrived. DATA: " + message.substring(0,60));
         };
         channel.basicConsume( appConfig.configData().RESULT_QUEUE_NAME, true, deliverCallback, consumerTag -> { });
     }

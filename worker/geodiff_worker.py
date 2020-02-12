@@ -16,6 +16,7 @@ from PIL import Image
 import string
 import random
 import functools
+import math
 
 
 class GeoDiffWorker(object):
@@ -128,12 +129,14 @@ class GeoDiffWorker(object):
             print(" [x] Scaling and joining polygons MultiPolygon...")
         m = MultiPolygon([polygons.loc[i].geometry for i in range(polygons.size)])
         g = geopandas.GeoSeries([m])
-        x = g.centroid.x[0] - center.x if (g.centroid.x[0] >= center.x) else center.x - g.centroid.x[0]
-        y = g.centroid.y[0] - center.y if (g.centroid.y[0] >= center.y) else center.y - g.centroid.y[0]
-        origin = Point([x, y])
-        g = g.scale(scale_x, scale_x, origin=origin)
+        scale_factor = math.sqrt((scale_x**2) / g.area[0])
+        g = g.scale(scale_factor, scale_factor)
+        x = g.centroid.x[0] - center.x if (g.centroid.x[0] < center.x) else center.x - g.centroid.x[0]
+        y = g.centroid.y[0] - center.y if (g.centroid.y[0] < center.y) else center.y - g.centroid.y[0]
+        g = g.translate(xoff = x, yoff = y)
+        import pdb; pdb.set_trace()
         if (self._debug):
-            print(" [x] MultiPolygon scaled.")
+            print(" [x] MultiPolygon scaled with scale_factor: {} - Result MultiPolygon Area: {}".format(scale_factor, g.area[0]))
         return g.to_json()
 
 
@@ -178,7 +181,7 @@ class GeoDiffWorker(object):
         data = json.loads(body)
         filteredImage = self.applyFilter(data['earthImage']['rawImage'])
         geoOutput = self.pngToGeoJson(filteredImage)
-        data['vectorImage'] = self.scale(geoOutput, data['earthImage']['dim'], Point(data['earthImage']['coordinate']['longitude'], data['earthImage']['coordinate']['latitude']) )
+        data['vectorImage'] = self.scale(geoOutput, data['earthImage']['dim'], Point(data['earthImage']['coordinate']['latitude'], data['earthImage']['coordinate']['longitude']) )
         if (self._debug):
             print(" [x] Job done! Image processing took {} seconds.".format(time.time() - start_time))
         self._channel.basic_ack(delivery_tag=delivery.delivery_tag)
