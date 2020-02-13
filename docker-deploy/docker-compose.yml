@@ -1,7 +1,7 @@
 version: "3.2"
 services:
     rabbitmq-server:
-        image: rabbitmq
+        image: rabbitmq:3-management
         hostname: "rabbitmq-server"
         environment:
             RABBITMQ_ERLANG_COOKIE: "SWQOKODSQALRPCLNMEQG"
@@ -29,7 +29,7 @@ services:
             MONGO_INITDB_ROOT_USERNAME: root
             MONGO_INITDB_ROOT_PASSWORD: example
         volumes:
-            - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+            - ./mongo/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js
 
     mongo-express:
         image: mongo-express
@@ -42,7 +42,7 @@ services:
             ME_CONFIG_MONGODB_SERVER: mongo-server
 
     worker:
-        image: geodiff-project_worker
+        build: ./worker
         restart: always
         depends_on:
             - rabbitmq-server
