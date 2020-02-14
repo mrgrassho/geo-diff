@@ -17,6 +17,8 @@ import string
 import random
 import functools
 import math
+import http.client
+import mimetypes
 
 
 class GeoDiffWorker(object):
@@ -110,6 +112,20 @@ class GeoDiffWorker(object):
         subprocess.check_output(['bash','-c', "rm -rf "+inputTmpBMP+" "+outputTmp])
         return data
 
+    def download_img(self, url):
+        if (self._debug):
+            print(" [x] Downloading Image...")
+        url = url.split('https://')[1]
+        host = url.split('/')[0]
+        resource = url.split('.com')[1]
+        conn = http.client.HTTPSConnection(host)
+        payload = ''
+        headers = {}
+        conn.request("GET", resource, payload, headers)
+        res = conn.getresponse()
+        data = res.read()
+        return "data:image/png;base64," + base64.b64encode(data).decode("utf-8", "ignore")
+
 
     def scale(self, polygons, scale_x, center=Point([0,0])):
         """
@@ -178,8 +194,11 @@ class GeoDiffWorker(object):
         if (self._debug):
             print(" [x] Received - Body: {}".format(body[:140]))
         start_time = time.time()
-        # import pdb; pdb.set_trace()
         data = json.loads(body)
+        # Descargamos la imagen si no esta
+        if (not 'rawImage' in data['earthImage']):
+            data['earthImage']['rawImage'] = self.download_img(data['earthImage']['url'])
+
         filteredImage = self.applyFilter(data['earthImage']['rawImage'])
         geoOutput = self.pngToGeoJson(filteredImage)
         data['vectorImage'] = self.scale(geoOutput, data['earthImage']['dim'], Point(data['earthImage']['coordinate']['latitude'], data['earthImage']['coordinate']['longitude']) )
@@ -244,6 +263,7 @@ class GeoDiffWorker(object):
                 self._connection.close()
                 # Start the IOLoop again so Pika can communicate, it will stop on its own when the connection is closed
                 self._connection.ioloop.start()
-            if (self._debug):
-                print(" [!] Host Unrecheable. Reconecting in {} seconds...".format(self._reconection_time))
-            time.sleep(self._reconection_time)
+            except :
+                if (self._debug):
+                    print(" [!] RabbitMQ Host Unrecheable. Reconecting in {} seconds...".format(self._reconection_time))
+                time.sleep(self._reconection_time)
