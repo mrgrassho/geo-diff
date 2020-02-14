@@ -71,33 +71,62 @@ public class GeoDiffService {
             logger.info(" - Process Order Arrived - Quantity: " + coordinates.size() + ", BeginDate: " + beginDateStr + ", EndDate:  " + endDateStr);
             for (Coordinate coord : coordinates) {
                 EarthAssets eas = nasaApi.getEarthAssets(coord.getLatitude(), coord.getLongitude(), beginDateStr, endDateStr);
-                eas.setCoordinate(coord);
-                earthAssets.add(eas);
-            }
-
-            for (EarthAssets eas: earthAssets) {
-                for (int i = 0; i < eas.getCount(); i++) {
-                    EarthAssets.EarthAsset ea = eas.getResults().get(i);
-                    try {
-                        GeoImage gi;
-                        if (null == (gi = geoImageRepository.findByCoordinateDateAndFilter(eas.getCoordinate().getLatitude(), eas.getCoordinate().getLongitude(), regexBeginWith(ea.getDate().split("T")[0]), "RAW"))) {
-                            EarthImage e = nasaApi.getEarthImage(eas.getCoordinate().getLatitude(), eas.getCoordinate().getLongitude(), appConfig.configData().DIMENSION, ea.getDate().split("T")[0], CLOUDSCORE);
-                            // Si es una imagen muy nublada no la guardamos.
-                            if (e.getCloudScore() < appConfig.configData().CLOUDSCORE_MAX) {
-                                e.setCoordinate(eas.getCoordinate());
-                                e.setDim(appConfig.configData().DIMENSION);
-                                gi = new GeoImage();
-                                gi.setEarthImage(e);
-                                gi.setFilterOption(filterOptionRepository.findByName("RAW"));
-                                geoImageRepository.save(gi);
-                                this.sendTaskToQueue(gi);
+                if (eas.getCount() > 0) {
+                    eas.setCoordinate(coord);
+                    for (int i = 0; i < eas.getCount(); i++) {
+                        EarthAssets.EarthAsset ea = eas.getResults().get(i);
+                        try {
+                            if (null == geoImageRepository.findByIdd(eas.getResults().get(i).getId())) {
+                                EarthImage e = nasaApi.getEarthImage(eas.getCoordinate().getLatitude(), eas.getCoordinate().getLongitude(), appConfig.configData().DIMENSION, ea.getDate().split("T")[0], CLOUDSCORE);
+                                // Si es una imagen muy nublada no la guardamos.
+                                if (e.getCloudScore() < appConfig.configData().CLOUDSCORE_MAX) {
+                                    e.setCoordinate(eas.getCoordinate());
+                                    e.setDim(appConfig.configData().DIMENSION);
+                                    GeoImage gi = new GeoImage();
+                                    gi.setEarthImage(e);
+                                    gi.setFilterOption(filterOptionRepository.findByName("RAW"));
+                                    geoImageRepository.save(gi);
+                                    this.sendTaskToQueue(gi);
+                                    earthAssets.add(eas);
+                                } else {
+                                    logger.info(" Img is being ignored. The cloud_score is " +  e.getCloudScore());
+                                }
+                            } else {
+                                earthAssets.add(eas);
                             }
+                        } catch (IOException e) {
+                            e.printStackTrace();
                         }
-                    } catch (IOException e) {
-                        e.printStackTrace();
                     }
                 }
             }
+
+//            for (EarthAssets eas: earthAssets) {
+//                for (int i = 0; i < eas.getCount(); i++) {
+//                    EarthAssets.EarthAsset ea = eas.getResults().get(i);
+//                    try {
+//                        GeoImage gi;
+//                        if (null == (gi = geoImageRepository.findByCoordinateDateAndFilter(eas.getCoordinate().getLatitude(), eas.getCoordinate().getLongitude(), regexBeginWith(ea.getDate().split("T")[0]), "RAW"))) {
+//                            EarthImage e = nasaApi.getEarthImage(eas.getCoordinate().getLatitude(), eas.getCoordinate().getLongitude(), appConfig.configData().DIMENSION, ea.getDate().split("T")[0], CLOUDSCORE);
+//                            // Si es una imagen muy nublada no la guardamos.
+//                            if (e.getCloudScore() < appConfig.configData().CLOUDSCORE_MAX) {
+//                                e.setCoordinate(eas.getCoordinate());
+//                                e.setDim(appConfig.configData().DIMENSION);
+//                                gi = new GeoImage();
+//                                gi.setEarthImage(e);
+//                                gi.setFilterOption(filterOptionRepository.findByName("RAW"));
+//                                geoImageRepository.save(gi);
+//                                this.sendTaskToQueue(gi);
+//                                earthAssets.add(eas);
+//                            }
+//                        } else {
+//                            earthAssets.add(eas);
+//                        }
+//                    } catch (IOException e) {
+//                        e.printStackTrace();
+//                    }
+//                }
+//            }
 
 
             // SE ASUME QUE TODOS LOS earthAssets tienen la misma LONGITUD
@@ -108,13 +137,15 @@ public class GeoDiffService {
                     String groupDate = "";
                     for (int j = 0; j <  earthAssets.get(i).getCount(); j++) {
                         ArrayList<GeoAsset> ga;
+                        String ts = earthAssets.get(i).getResults().get(j).getDate();
+                        String id = earthAssets.get(i).getResults().get(j).getId();
                         String date = earthAssets.get(i).getResults().get(j).getDate().split("T")[0];
                         groupDate = (Integer.valueOf(dtf.parseDateTime(date).toString("dd")) < 16) ? dtf.parseDateTime(date).withDayOfMonth(1).toString(dateTimePattern) : dtf.parseDateTime(date).withDayOfMonth(16).toString(dateTimePattern);
                         if (null == (ga = geoAssets.get(groupDate))) {
                             ga = new ArrayList<>();
                         }
                         Coordinate coord = earthAssets.get(i).getCoordinate();
-                        ga.add(new GeoAsset(date, coord));
+                        ga.add(new GeoAsset(id, ts, coord));
                         geoAssets.put(groupDate, ga);
                     }
                     logger.info(" [*] New Coordinates Group. Key: " + groupDate + ", Qty: " + geoAssets.get(groupDate).size());
@@ -153,7 +184,9 @@ public class GeoDiffService {
 
         DeliverCallback deliverCallback = (consumerTag, delivery) -> {
             String message = new String(delivery.getBody(), "UTF-8");
-            GeoImage gi = gson.fromJson(message, GeoImage.class);
+            GeoImage g = gson.fromJson(message, GeoImage.class);
+            GeoImage gi = geoImageRepository.findByIdd(g.getId());
+            gi.setVectorImage(g.getVectorImage());
             geoImageRepository.save(gi);
             logger.info(" [*] New Image arrived. DATA: " + message.substring(0,60));
         };
@@ -163,7 +196,20 @@ public class GeoDiffService {
     public GeoImage findGeoImage(Double lat, Double lon, Date t, String nameFilter) throws GeoException {
         if ( lat == null  || lon == null || t == null || nameFilter == null) throw new GeoException("Null params found.") ;
         Coordinate coord = this.nearCoordinate(new Coordinate(lat, lon));
-        return geoImageRepository.findByCoordinateAndDateAndFilter(coord.getLatitude(), coord.getLongitude(), timestamp.format(t), nameFilter);
+        logger.info(" [*] New Request for COORDS(lat, lon):" + coord + " - Date:"+ timestamp.format(t) + " - Name Filter:" + nameFilter);
+        GeoImage g = geoImageRepository.findByCoordinateAndDateAndFilter(coord.getLatitude(), coord.getLongitude(), timestamp.format(t), nameFilter);
+        if (g == null){
+            throw new GeoException("Image Null");
+        }
+        return g;
+    }
+
+    public GeoImage findGeoImageByEarthImageId(String id) throws GeoException {
+        if (id != null) {
+            return geoImageRepository.findByEarthImageId(id);
+        } else {
+            throw new GeoException("Image Null");
+        }
     }
 
     public String regexBeginWith(String str) {

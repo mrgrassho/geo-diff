@@ -11,8 +11,13 @@ var VectorLayer = ol.layer.Vector; //import {Tile as TileLayer, Vector as Vector
 var OSM = ol.source.OSM; //import {OSM, Vector as VectorSource} from 'ol/source.js';
 var VectorSource = ol.source.Vector; //import {OSM, Vector as VectorSource} from 'ol/source.js';
 var Static = ol.source.ImageStatic;
+var GeoJSON = ol.format.GeoJSON;
 var proj = ol.proj;
 var Ajax = Ajax;
+//var Fill = ol.style;
+//var Stroke = ol.style;
+//var Style = ol.style;
+//var Text = ol.style;
 
 
 GeoImage.buildImgURL = function (date, lat, lon, filter) {
@@ -25,6 +30,10 @@ GeoImage.buildImgURL = function (date, lat, lon, filter) {
                "lat=" + lat + "&" +
                "lon=" + lon + "&" +
                "filter=" + filter;
+}
+
+GeoImage.buildVectorURL = function (id) {
+  return GeoImage.baseURL + "/vector?" + "earthImageId=" + id
 }
 
 GeoImage.buildImgAssets = function (beginDate, endDate) {
@@ -42,11 +51,15 @@ GeoImage.getAssets = function (coords) {
   let url = GeoImage.buildImgAssets(beginDate, endDate);
   Ajax.request( "POST", url, coords, function (xhr) {
   // LLEGA EL RECURSO Y SE AGREGA LA CAPA.
-    if (xhr == {} || xhr == null) {
-        console.log('[!] No Results Found. Request: ' + url + " Body: " + coords)
+    var obj = JSON.parse(xhr);
+    console.log('Fucking Object :', obj)
+    if (xhr === "{}") {
+        console.log("[!] Request coordinates are NOT available. Request: " + url + " Body: " + JSON.stringify(coords));
+        alert("Request coordinates are NOT available.");
+        GeoImage.dropLastLayer();
     } else  {
-        console.log('Add Image Layer :', xhr)
-        GeoImage.Main(xhr);
+        console.log('Add Image Layer :', obj)
+        GeoImage.Main(obj);
     }
   });
 }
@@ -73,6 +86,31 @@ GeoImage.getImg = function(date, coord, filter) {
   });
 }
 
+GeoImage.getVector = function(id) {
+  let url =  GeoImage.buildVectorURL(id);
+  // LLAMADA AJAX PARA LA IMAGEN;
+  Ajax.request( "GET", url, {}, function (xhr) {
+  // LLEGA EL RECURSO Y SE AGREGA LA CAPA.
+    if (xhr != null || xhr !== "") {
+      let geojsonObject = JSON.parse(xhr);
+      console.log(" [+] Resource available. URL:"+ url);
+      GeoImage.Map.addLayer(
+        new VectorLayer({
+          source: new VectorSource({
+            features: (new GeoJSON()).readFeatures(geojsonObject)
+          }),
+          // style: function(feature) {
+          //   style.getText().setText(feature.get('name'));
+          //   return style;
+          // }
+        })
+      );
+    } else {
+        console.log(" [!] Resource NOT available. URL:"+ url);
+    }
+  });
+}
+
 GeoImage.buildSlider = function() {
   let list = document.getElementById('result-groups-100');
   list.innerHTML = '';
@@ -80,9 +118,8 @@ GeoImage.buildSlider = function() {
   for (var i of Object.keys(GeoImage.resources)) {
     let li = document.createElement('div');
     let a = document.createElement('a');
-    // Muestro solo la primer fecha de cada grupo
-    a.innerText = GeoImage.resources[i][0]['date'].split("T")[0];
-    a.setAttribute('onclick', 'GeoImage.loadMap('+i+');')
+    a.innerText = i;
+    a.setAttribute('onclick', 'GeoImage.loadMapVector(\"'+i+'\");')
     a.classList.add('pop-up');
     li.appendChild(a);
     ol.appendChild(li);
@@ -90,19 +127,34 @@ GeoImage.buildSlider = function() {
   list.appendChild(ol);
 }
 
+GeoImage.dropLastLayer = function() {
+    let lastLayer = GeoImage.Map.getLayers()["array_"].pop();
+    if (lastLayer != null) GeoImage.Map.removeLayer(lastLayer);
+}
+
 GeoImage.loadMap = function (id) {
   let group = GeoImage.resources[id];
+  let lat = group[0]['centerCoordinate']["latitude"];
+  let lon = group[0]['centerCoordinate']["longitude"];
+  GeoImage.Map.getView().setCenter = proj.fromLonLat([lon, lat]);
   for (var item of group) {
-    GeoImage.getImg(item['date'], item['coordinate'], 'RAW');
+    GeoImage.getImg(item['date'], item['centerCoordinate'], 'RAW');
+  }
+}
+
+GeoImage.loadMapVector = function (id) {
+  let group = GeoImage.resources[id];
+  let lat = group[0]['centerCoordinate']["latitude"];
+  let lon = group[0]['centerCoordinate']["longitude"];
+  GeoImage.Map.getView().setCenter = proj.fromLonLat([lon, lat]);
+  for (var item of group) {
+    GeoImage.getVector(item['id']);
   }
 }
 
 GeoImage.Main = function (resources) {
-  GeoImage.resources = resources;
-  let lat = GeoImage.resources[0][0]["coordinate"]["latitude"];
-  let lon = GeoImage.resources[0][0]["coordinate"]["longitude"];
-  GeoImage.Map.view.center = proj.fromLonLat([lon, lat]);
-  GeoImage.buildSlider();
+    GeoImage.resources = resources;
+    GeoImage.buildSlider();
 }
 
 GeoImage.init = function (offset, baseURL) {
@@ -120,6 +172,27 @@ GeoImage.init = function (offset, baseURL) {
     source: source
   });
 
+  // var style = new Style({
+  //   fill: new Fill({
+  //     color: 'rgba(255, 255, 255, 0.6)'
+  //   }),
+  //   stroke: new Stroke({
+  //     color: '#319FD3',
+  //     width: 1
+  //   }),
+  //   text: new Text({
+  //     font: '12px Calibri,sans-serif',
+  //     fill: new Fill({
+  //       color: '#000'
+  //     }),
+  //     stroke: new Stroke({
+  //       color: '#fff',
+  //       width: 3
+  //     })
+  //   })
+  // });
+
+
   source.on('addfeature', function(evt){
     var feature = evt.feature;
     var coords = feature.getGeometry().getCoordinates()[0];
@@ -127,8 +200,8 @@ GeoImage.init = function (offset, baseURL) {
     for (co of coords) {
       let coord = {'latitude':0,'longitude':0};
       console.log(co);
-      coord['latitude'] = proj.transform(co, 'EPSG:3857', 'EPSG:4326')[1];
-      coord['longitude'] = proj.transform(co, 'EPSG:3857', 'EPSG:4326')[0];
+      coord['latitude'] = co[0];
+      coord['longitude'] = co[1];
       coordConverted.push(coord);
     }
     GeoImage.getAssets(coordConverted);
@@ -138,14 +211,15 @@ GeoImage.init = function (offset, baseURL) {
     layers: [raster, vector],
     target: 'map',
     view: new View({
-      center: proj.fromLonLat([-8.625, 18.3]),
-      zoom: 11
+        projection: 'EPSG:4326',
+        center: [0, 0],
+        zoom: 2
     })
   });
 
   var typeSelect = document.getElementById('type');
 
-  var draw; // global so we can remove it later
+  GeoImage.draw = {}; // global so we can remove it later
   function addInteraction() {
     var value = typeSelect.value;
     if (value !== 'None') {
@@ -157,12 +231,12 @@ GeoImage.init = function (offset, baseURL) {
         value = 'Circle';
         geometryFunction = Draw.createBox();
       }
-      draw = new Draw({
+      GeoImage.draw = new Draw({
         source: source,
         type: value,
         geometryFunction: geometryFunction
       });
-      GeoImage.Map.addInteraction(draw);
+      GeoImage.Map.addInteraction(GeoImage.draw);
     }
   }
 
@@ -171,7 +245,7 @@ GeoImage.init = function (offset, baseURL) {
    * Handle change event.
    */
   typeSelect.onchange = function() {
-    GeoImage.Map.removeInteraction(draw);
+    GeoImage.Map.removeInteraction(GeoImage.draw);
     addInteraction();
   };
 

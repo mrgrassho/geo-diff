@@ -1,10 +1,12 @@
 package com.geodiff.dto;
 
 public class GeoAsset {
+    private String id;
     private String date;
     private Coordinate centerCoordinate;
 
-    public GeoAsset(String date, Coordinate centerCoordinate) {
+    public GeoAsset(String id, String date, Coordinate centerCoordinate) {
+        this.id = id;
         this.date = date;
         this.centerCoordinate = centerCoordinate;
     }
@@ -23,5 +25,13 @@ public class GeoAsset {
 
     public void setCenterCoordinate(Coordinate centerCoordinate) {
         this.centerCoordinate = centerCoordinate;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
     }
 }

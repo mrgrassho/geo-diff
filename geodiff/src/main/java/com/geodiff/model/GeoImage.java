@@ -1,10 +1,14 @@
 package com.geodiff.model;
 
 import com.nasa.model.earth.EarthImage;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
+@Document
 public class GeoImage {
 
-    private Long Id;
+    @Id
+    private String Id;
 
     private EarthImage earthImage;
 
@@ -30,11 +34,11 @@ public class GeoImage {
         this.filterOption = filterOption;
     }
 
-    public Long getId() {
+    public String getId() {
         return Id;
     }
 
-    public void setId(Long id) {
+    public void setId(String id) {
         Id = id;
     }
 
