@@ -7,3 +7,4 @@ target/
 /**/.mvn/
 *.DS_Store
 application.properties
+/**/__pycache__/
