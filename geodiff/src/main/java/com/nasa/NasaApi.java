@@ -170,17 +170,7 @@ public final class NasaApi {
     public EarthImage getEarthImage(final double lat, final double lon, final double dim, final String date,
             final boolean cloudScore) throws IOException {
         EarthImage ei = get(earthService.earthImage(lat, lon, dim, date, cloudScore, apiKey));
-        ei.setImageByUrl(client);
-//        BASE64Decoder decoder = new BASE64Decoder();
-//        ByteArrayInputStream bis = new ByteArrayInputStream(ei.getRawImage());
-//        BufferedImage image = ImageIO.read(bis);
-//        System.out.println("IMAGE PART: "+image.toString().substring(10));
-//        bis.close();
-//
-//        // write the image to a file
-//        File outputfile = new File("images-test/"+ei.getId().split("/")[1]+".png");
-//        outputfile.createNewFile();
-//        ImageIO.write(image, "png", outputfile);
+        //ei.setImageByUrl(client);
         return ei;
     }
 

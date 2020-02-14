@@ -38,22 +38,17 @@
             <label for="end-date">End: </label>
             <input id="end-date" type="date" th:value="${#dates.format(#dates.createNow(), 'yyyy-MM-dd')}">
         </div>
-        <p>Filter Options:</p>
+        <p>Show Options:</p>
         <ul>
             <li>
-                <input type="checkbox" id="deforestation-opt" value="deforestation">
-                <label for="deforestation-opt">Deforestation</label>
+                <input type="checkbox" id="vector-resource" value="deforestation" checked="true">
+                <label for="vector-resource">Vectors Images</label>
             </li>
             <li>
-                <input type="checkbox" id="urbanization-opt" value="urbanization">
-                <label for="urbanization-opt">Urbanization</label>
-            </li>
-            <li>
-                <input type="checkbox" id="drought-opt" value="drought">
-                <label for="drought-opt">Drought</label>
+                <input type="checkbox" id="raw-resource" value="deforestation" checked="true">
+                <label for="raw-resource">Raw Images</label>
             </li>
         </ul>
-        <a th:href="@{/geo/new-map-example}" class="button">Retrieve Data</a>
     </div>
 </section>
 </body>

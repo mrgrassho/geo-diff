@@ -46,13 +46,15 @@ a.button:hover {
     padding: 0
     text-decoration: none;
     color: initial;
+    padding: 5px;
+    margin: 2px;
 }
 
 .pop-up::before {
   content: "";
   display: block;
-  width: 30px;
-  border-width: 0px 25px 13px 20px;
+  width: 0px;
+  border-width: 0px 74px 12px 0px
   border-style: solid;
   border-color: #ffffff transparent;
 }

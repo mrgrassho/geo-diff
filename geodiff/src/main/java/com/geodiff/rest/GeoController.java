@@ -17,6 +17,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -63,8 +64,7 @@ public class GeoController {
             @DateTimeFormat(pattern = "yyyy-MM-dd") Date beginDate,
             @RequestParam(name = "end-date", required = false)
             @DateTimeFormat(pattern = "yyyy-MM-dd") Date endDate,
-            @RequestBody ArrayList<Coordinate> coordinates) throws GeoException
-    {
+            @RequestBody ArrayList<Coordinate> coordinates) throws GeoException, ParseException {
         logger.info(" [+] Request arrived. Coordinates: " + coordinates );
         return geoDiffService.createMap(coordinates, beginDate, endDate);
     }
@@ -88,7 +88,12 @@ public class GeoController {
             @RequestParam(name = "lon", required = true) Double longitude,
             @RequestParam(name = "filter", required = true) String filter ) throws GeoException
     {
-        return geoDiffService.findGeoImage(latitude, longitude, date, filter).getEarthImage().getRawImage();
+        GeoImage gi = geoDiffService.findGeoImage(latitude, longitude, date, filter);
+        if (gi != null) {
+            return gi.getEarthImage().getRawImage();
+        } else {
+            return "";
+        }
     }
 
     /**
@@ -101,12 +106,15 @@ public class GeoController {
     @ResponseBody
     @ResponseStatus(HttpStatus.OK)
     public String getVector(
-            @RequestParam(name = "earthImageId", required = false) String id ) throws GeoException
+            @RequestParam(name = "date", required = true)
+            @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss") Date date,
+            @RequestParam(name = "lat", required = true) Double latitude,
+            @RequestParam(name = "lon", required = true) Double longitude,
+            @RequestParam(name = "filter", required = true) String filter )  throws GeoException
     {
-        GeoImage gi = geoDiffService.findGeoImageByEarthImageId(id);
-        String vector;
-        if ((vector = gi.getVectorImage()) != null) {
-            return vector;
+        GeoImage gi = geoDiffService.findGeoImage(latitude, longitude, date, filter);
+        if (gi != null) {
+            return gi.getVectorImage();
         } else {
             return "";
         }

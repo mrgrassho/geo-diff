@@ -14,11 +14,11 @@ var Static = ol.source.ImageStatic;
 var GeoJSON = ol.format.GeoJSON;
 var proj = ol.proj;
 var Ajax = Ajax;
-//var Fill = ol.style;
-//var Stroke = ol.style;
-//var Style = ol.style;
-//var Text = ol.style;
-
+var Fill = ol.style.Fill;
+var Stroke = ol.style.Stroke;
+var Style = ol.style.Style;
+var Color = ol.color;
+var Text = ol.style.Text;
 
 GeoImage.buildImgURL = function (date, lat, lon, filter) {
   date = date == null ? '': date;
@@ -32,8 +32,12 @@ GeoImage.buildImgURL = function (date, lat, lon, filter) {
                "filter=" + filter;
 }
 
-GeoImage.buildVectorURL = function (id) {
-  return GeoImage.baseURL + "/vector?" + "earthImageId=" + id
+GeoImage.buildVectorURL = function (date, lat, lon, filter) {
+  return GeoImage.baseURL + "/vector?" +
+             "date=" + date + "&" +
+             "lat=" + lat + "&" +
+             "lon=" + lon + "&" +
+             "filter=" + filter;
 }
 
 GeoImage.buildImgAssets = function (beginDate, endDate) {
@@ -42,6 +46,15 @@ GeoImage.buildImgAssets = function (beginDate, endDate) {
   return GeoImage.baseURL + "/img-assets?" +
                "begin-date=" + beginDate + "&" +
                "end-date=" + endDate;
+}
+
+GeoImage.getRandomColor = function () {
+  var letters = '0123456789ABCDEF';
+  var color = '#';
+  for (var i = 0; i < 6; i++) {
+    color += letters[Math.floor(Math.random() * 16)];
+  }
+  return Color.asArray(color);
 }
 
 GeoImage.getAssets = function (coords) {
@@ -86,12 +99,12 @@ GeoImage.getImg = function(date, coord, filter) {
   });
 }
 
-GeoImage.getVector = function(id) {
-  let url =  GeoImage.buildVectorURL(id);
+GeoImage.getVector = function(date, lat, lon, filter) {
+  let url =  GeoImage.buildVectorURL(date, lat, lon, filter);
   // LLAMADA AJAX PARA LA IMAGEN;
   Ajax.request( "GET", url, {}, function (xhr) {
   // LLEGA EL RECURSO Y SE AGREGA LA CAPA.
-    if (xhr != null || xhr !== "") {
+    if (xhr != null && xhr !== "") {
       let geojsonObject = JSON.parse(xhr);
       console.log(" [+] Resource available. URL:"+ url);
       GeoImage.Map.addLayer(
@@ -99,10 +112,13 @@ GeoImage.getVector = function(id) {
           source: new VectorSource({
             features: (new GeoJSON()).readFeatures(geojsonObject)
           }),
-          // style: function(feature) {
-          //   style.getText().setText(feature.get('name'));
-          //   return style;
-          // }
+           style: function(feature) {
+             GeoImage.style.getText().setText(feature.get('name'));
+             GeoImage.style.setFill( new Fill({
+                color: GeoImage.getRandomColor()
+             }));
+             return GeoImage.style;
+           }
         })
       );
     } else {
@@ -115,12 +131,14 @@ GeoImage.buildSlider = function() {
   let list = document.getElementById('result-groups-100');
   list.innerHTML = '';
   let ol = document.createElement('div');
-  for (var i of Object.keys(GeoImage.resources)) {
+  let sortedKeys = Object.keys(GeoImage.resources).sort();
+  for (var i of sortedKeys) {
     let li = document.createElement('div');
     let a = document.createElement('a');
     a.innerText = i;
-    a.setAttribute('onclick', 'GeoImage.loadMapVector(\"'+i+'\");')
+    a.setAttribute('onclick', 'GeoImage.loadMapCentralized(\"'+i+'\");')
     a.classList.add('pop-up');
+    a.classList.add('green-btn');
     li.appendChild(a);
     ol.appendChild(li);
   }
@@ -132,11 +150,22 @@ GeoImage.dropLastLayer = function() {
     if (lastLayer != null) GeoImage.Map.removeLayer(lastLayer);
 }
 
+GeoImage.loadMapCentralized = function (id) {
+
+    if (document.getElementById("raw-resource").checked) {
+        GeoImage.loadMap(id);
+    }
+
+    if (document.getElementById("vector-resource").checked) {
+        GeoImage.loadMapVector(id);
+    }
+}
+
 GeoImage.loadMap = function (id) {
   let group = GeoImage.resources[id];
   let lat = group[0]['centerCoordinate']["latitude"];
   let lon = group[0]['centerCoordinate']["longitude"];
-  GeoImage.Map.getView().setCenter = proj.fromLonLat([lon, lat]);
+  //GeoImage.View.setCenter([lat, lon]);
   for (var item of group) {
     GeoImage.getImg(item['date'], item['centerCoordinate'], 'RAW');
   }
@@ -146,9 +175,9 @@ GeoImage.loadMapVector = function (id) {
   let group = GeoImage.resources[id];
   let lat = group[0]['centerCoordinate']["latitude"];
   let lon = group[0]['centerCoordinate']["longitude"];
-  GeoImage.Map.getView().setCenter = proj.fromLonLat([lon, lat]);
+  //GeoImage.View.setCenter([lat, lon]);
   for (var item of group) {
-    GeoImage.getVector(item['id']);
+    GeoImage.getVector(item['date'], item['centerCoordinate']["latitude"], item['centerCoordinate']["longitude"], 'RAW');
   }
 }
 
@@ -172,25 +201,22 @@ GeoImage.init = function (offset, baseURL) {
     source: source
   });
 
-  // var style = new Style({
-  //   fill: new Fill({
-  //     color: 'rgba(255, 255, 255, 0.6)'
-  //   }),
-  //   stroke: new Stroke({
-  //     color: '#319FD3',
-  //     width: 1
-  //   }),
-  //   text: new Text({
-  //     font: '12px Calibri,sans-serif',
-  //     fill: new Fill({
-  //       color: '#000'
-  //     }),
-  //     stroke: new Stroke({
-  //       color: '#fff',
-  //       width: 3
-  //     })
-  //   })
-  // });
+   GeoImage.style = new Style({
+     stroke: new Stroke({
+       color: '#319FD3',
+       width: 1
+     }),
+     text: new Text({
+       font: '12px Calibri,sans-serif',
+       fill: new Fill({
+         color: '#000'
+       }),
+       stroke: new Stroke({
+         color: '#fff',
+         width: 3
+       })
+     })
+   });
 
 
   source.on('addfeature', function(evt){
@@ -200,21 +226,23 @@ GeoImage.init = function (offset, baseURL) {
     for (co of coords) {
       let coord = {'latitude':0,'longitude':0};
       console.log(co);
-      coord['latitude'] = co[0];
-      coord['longitude'] = co[1];
+      coord['latitude'] = co[1];
+      coord['longitude'] = co[0];
       coordConverted.push(coord);
     }
     GeoImage.getAssets(coordConverted);
   });
 
+  GeoImage.View = new View({
+      projection: 'EPSG:4326',
+      center: [0, 0],
+      zoom: 2
+  })
+
   GeoImage.Map = new Map({
     layers: [raster, vector],
     target: 'map',
-    view: new View({
-        projection: 'EPSG:4326',
-        center: [0, 0],
-        zoom: 2
-    })
+    view: GeoImage.View
   });
 
   var typeSelect = document.getElementById('type');

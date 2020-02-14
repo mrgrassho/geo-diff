@@ -26,6 +26,7 @@ import java.net.URISyntaxException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.text.DateFormat;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -60,7 +61,7 @@ public class GeoDiffService {
         this.getResultFromQueue();
     }
 
-    public HashMap<String, ArrayList<GeoAsset>> createMap(ArrayList<Coordinate> coordinates, Date beginDate, Date endDate) throws GeoException {
+    public HashMap<String, ArrayList<GeoAsset>> createMap(ArrayList<Coordinate> coordinates, Date beginDate, Date endDate) throws GeoException, ParseException {
         NasaApi nasaApi = new NasaApi(appConfig.configData().API_KEY);
         ArrayList<EarthAssets> earthAssets = new ArrayList<>();
         HashMap<String, ArrayList<GeoAsset>> geoAssets =  new HashMap<>();
@@ -76,10 +77,14 @@ public class GeoDiffService {
                     for (int i = 0; i < eas.getCount(); i++) {
                         EarthAssets.EarthAsset ea = eas.getResults().get(i);
                         try {
-                            if (null == geoImageRepository.findByIdd(eas.getResults().get(i).getId())) {
+                            if (null == this.findGeoImage(
+                                            eas.getCoordinate().getLatitude(),
+                                            eas.getCoordinate().getLongitude(),
+                                            timestamp.parse(ea.getDate()),
+                                            "RAW")) {
                                 EarthImage e = nasaApi.getEarthImage(eas.getCoordinate().getLatitude(), eas.getCoordinate().getLongitude(), appConfig.configData().DIMENSION, ea.getDate().split("T")[0], CLOUDSCORE);
                                 // Si es una imagen muy nublada no la guardamos.
-                                if (e.getCloudScore() < appConfig.configData().CLOUDSCORE_MAX) {
+                                if ( appConfig.configData().CLOUDSCORE_MAX.compareTo(e.getCloudScore()) >= 0) {
                                     e.setCoordinate(eas.getCoordinate());
                                     e.setDim(appConfig.configData().DIMENSION);
                                     GeoImage gi = new GeoImage();
@@ -100,33 +105,6 @@ public class GeoDiffService {
                     }
                 }
             }
-
-//            for (EarthAssets eas: earthAssets) {
-//                for (int i = 0; i < eas.getCount(); i++) {
-//                    EarthAssets.EarthAsset ea = eas.getResults().get(i);
-//                    try {
-//                        GeoImage gi;
-//                        if (null == (gi = geoImageRepository.findByCoordinateDateAndFilter(eas.getCoordinate().getLatitude(), eas.getCoordinate().getLongitude(), regexBeginWith(ea.getDate().split("T")[0]), "RAW"))) {
-//                            EarthImage e = nasaApi.getEarthImage(eas.getCoordinate().getLatitude(), eas.getCoordinate().getLongitude(), appConfig.configData().DIMENSION, ea.getDate().split("T")[0], CLOUDSCORE);
-//                            // Si es una imagen muy nublada no la guardamos.
-//                            if (e.getCloudScore() < appConfig.configData().CLOUDSCORE_MAX) {
-//                                e.setCoordinate(eas.getCoordinate());
-//                                e.setDim(appConfig.configData().DIMENSION);
-//                                gi = new GeoImage();
-//                                gi.setEarthImage(e);
-//                                gi.setFilterOption(filterOptionRepository.findByName("RAW"));
-//                                geoImageRepository.save(gi);
-//                                this.sendTaskToQueue(gi);
-//                                earthAssets.add(eas);
-//                            }
-//                        } else {
-//                            earthAssets.add(eas);
-//                        }
-//                    } catch (IOException e) {
-//                        e.printStackTrace();
-//                    }
-//                }
-//            }
 
 
             // SE ASUME QUE TODOS LOS earthAssets tienen la misma LONGITUD
@@ -186,9 +164,15 @@ public class GeoDiffService {
             String message = new String(delivery.getBody(), "UTF-8");
             GeoImage g = gson.fromJson(message, GeoImage.class);
             GeoImage gi = geoImageRepository.findByIdd(g.getId());
-            gi.setVectorImage(g.getVectorImage());
-            geoImageRepository.save(gi);
-            logger.info(" [*] New Image arrived. DATA: " + message.substring(0,60));
+            if (gi != null) {
+                gi.setVectorImage(g.getVectorImage());
+                gi.getEarthImage().setRawImage(g.getEarthImage().getRawImage());
+                geoImageRepository.save(gi);
+                logger.info(" [*] New Image arrived. DATA: " + message.substring(0,60));
+            } else {
+                logger.error(" [!] Image NOT found in the DB. Ignoring result.");
+            }
+
         };
         channel.basicConsume( appConfig.configData().RESULT_QUEUE_NAME, true, deliverCallback, consumerTag -> { });
     }
@@ -197,10 +181,11 @@ public class GeoDiffService {
         if ( lat == null  || lon == null || t == null || nameFilter == null) throw new GeoException("Null params found.") ;
         Coordinate coord = this.nearCoordinate(new Coordinate(lat, lon));
         logger.info(" [*] New Request for COORDS(lat, lon):" + coord + " - Date:"+ timestamp.format(t) + " - Name Filter:" + nameFilter);
-        GeoImage g = geoImageRepository.findByCoordinateAndDateAndFilter(coord.getLatitude(), coord.getLongitude(), timestamp.format(t), nameFilter);
-        if (g == null){
-            throw new GeoException("Image Null");
-        }
+        GeoImage g = geoImageRepository.findByCoordinateAndDateAndFilter(coord.getLatitude(), coord.getLongitude(), timestamp.format(t));
+        if (g == null)
+            logger.info("Image Not Found.");
+        else
+            logger.info("Image Coords (lat, lon)" + g.getEarthImage().getCoordinate());
         return g;
     }
 
@@ -217,7 +202,7 @@ public class GeoDiffService {
     }
 
     public double getNearPoint(double x, double y){
-        if ((x * 1000) % (y * 1000) != 0) {
+        if ((x * 1000) % (y * 1000) == 0) {
             return (double) ((int) ((x * 1000) / (y * 1000)) * (y * 1000) ) / 1000;
         } else {
             return (double) ((int) ((x * 1000) / (y * 1000)) * (y * 1000) + (y * 1000)) / 1000;
