@@ -237,6 +237,7 @@ class GeoDiffWorker(object):
             try:
                 self._connection = pika.SelectConnection(pika.URLParameters(self._amqp_url), on_open_callback=self.on_open_connection)
                 self._connection.ioloop.start()
+                print("conexion creada")
             # Catch a Keyboard Interrupt to make sure that the connection is closed cleanly
             except KeyboardInterrupt:
                 # Gracefully close the connection
