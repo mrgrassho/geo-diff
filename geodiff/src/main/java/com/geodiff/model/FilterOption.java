@@ -1,7 +1,7 @@
 package com.geodiff.model;
 
 public class FilterOption {
-    private Long Id;
+    private String Id;
 
     private String name;
 
@@ -9,11 +9,11 @@ public class FilterOption {
 
     public FilterOption () {}
 
-    public Long getId() {
+    public String getId() {
         return Id;
     }
 
-    public void setId(Long id) {
+    public void setId(String id) {
         Id = id;
     }
 

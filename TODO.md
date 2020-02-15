@@ -42,13 +42,16 @@
 
 #### Worker
 
-- [ ] Testear
+- [x] Testear.
 - [ ] Reducir tamaño de imagen de Docker (~2.5 GB). Se va al carajo.
+- [x] Revisar el metodo que mueve un Polygon que parece que esta al reves (lon, lat) en vez de (lat, lon)
 
 #### Backend
 
 - [x] Arreglar variables de entorno application.properties para mongobee.
-- [ ] Testear.
+- [x] Testear.
+- [x] Revisar CloudScore (no funca el filtro).
+- [x] Pensar manera de optimizar el proceso. (Que lo workers descarguen las imagenes. Esta opcion es facil de implementar con las librerias httpclient)
 
 #### Mongo
-- [ ] Revisar container que no esta tomando la configuracion de init-mongo.js
+- [x] Revisar container que no esta tomando la configuracion de init-mongo.js

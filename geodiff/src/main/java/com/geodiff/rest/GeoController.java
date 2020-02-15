@@ -5,6 +5,7 @@ import com.geodiff.WebProperties;
 import com.geodiff.dto.Coordinate;
 import com.geodiff.dto.GeoAsset;
 import com.geodiff.dto.GeoException;
+import com.geodiff.model.GeoImage;
 import com.geodiff.service.GeoDiffService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -62,8 +64,7 @@ public class GeoController {
             @DateTimeFormat(pattern = "yyyy-MM-dd") Date beginDate,
             @RequestParam(name = "end-date", required = false)
             @DateTimeFormat(pattern = "yyyy-MM-dd") Date endDate,
-            @RequestBody ArrayList<Coordinate> coordinates) throws GeoException
-    {
+            @RequestBody ArrayList<Coordinate> coordinates) throws GeoException, ParseException {
         logger.info(" [+] Request arrived. Coordinates: " + coordinates );
         return geoDiffService.createMap(coordinates, beginDate, endDate);
     }
@@ -81,34 +82,41 @@ public class GeoController {
     @ResponseBody
     @ResponseStatus(HttpStatus.OK)
     public String getImage(
-            @RequestParam(name = "date", required = false)
+            @RequestParam(name = "date", required = true)
             @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss") Date date,
             @RequestParam(name = "lat", required = true) Double latitude,
             @RequestParam(name = "lon", required = true) Double longitude,
             @RequestParam(name = "filter", required = true) String filter ) throws GeoException
     {
-        return geoDiffService.findGeoImage(latitude, longitude, date, filter).getEarthImage().getRawImage();
+        GeoImage gi = geoDiffService.findGeoImage(latitude, longitude, date, filter);
+        if (gi != null) {
+            return gi.getEarthImage().getRawImage();
+        } else {
+            return "";
+        }
     }
 
     /**
      *  Get a Vector of Image with filter applied.
      *
-     *  @param    date         Date
-     *  @param    latitude     -
-     *  @param    longitude    -
-     *  @param    filter       Filter applied to the image defined in FilterOption.
+     *  @param    id           Date
      *  @return                GeoImage result.
      * */
     @GetMapping("/vector")
     @ResponseBody
     @ResponseStatus(HttpStatus.OK)
     public String getVector(
-            @RequestParam(name = "date", required = false)
+            @RequestParam(name = "date", required = true)
             @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss") Date date,
             @RequestParam(name = "lat", required = true) Double latitude,
             @RequestParam(name = "lon", required = true) Double longitude,
-            @RequestParam(name = "filter", required = true) String filter ) throws GeoException
+            @RequestParam(name = "filter", required = true) String filter )  throws GeoException
     {
-        return geoDiffService.findGeoImage(latitude, longitude, date, filter).getVectorImage();
+        GeoImage gi = geoDiffService.findGeoImage(latitude, longitude, date, filter);
+        if (gi != null) {
+            return gi.getVectorImage();
+        } else {
+            return "";
+        }
     }
 }

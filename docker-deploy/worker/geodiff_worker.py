@@ -17,6 +17,8 @@ import string
 import random
 import functools
 import math
+import http.client
+import mimetypes
 
 
 class GeoDiffWorker(object):
@@ -54,8 +56,8 @@ class GeoDiffWorker(object):
             print(" [x] Applying {} filter to Image".format(filter))
         if (filter == 'DEFORESTATION'):
             # Filtra gama de verdes
-            lower_hsv = self.normalize_HSV(np.array([70,40,40]))
-            upper_hsv = self.normalize_HSV(np.array([106,100,100]))
+            lower_hsv = np.array([40, 55, 40])
+            upper_hsv = np.array([60, 220, 220])
         elif (filter == 'DROUGHT'):
             # Filtra gama de amarrillos / rojizos
             lower_hsv = self.normalize_HSV(np.array([40,46,54]))
@@ -70,7 +72,7 @@ class GeoDiffWorker(object):
             upper_hsv = self.normalize_HSV(np.array([360,0,100]))
         img = self.data_uri_to_cv2_img(image)
         # blurredImage = cv2.blur(img,(2,2))
-        hsv = cv2.cvtColor(img,cv2.COLOR_RGB2HSV)
+        hsv = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
         mask = cv2.inRange(hsv, lower_hsv, upper_hsv)
         # import pdb; pdb.set_trace()
         if (self._debug):
@@ -82,11 +84,10 @@ class GeoDiffWorker(object):
         # and Value range is [0,255]. Different softwares use different scales.
         # So if you are comparing OpenCV values with them, you need to normalize
         # these ranges.
-        return np.array([
-            self.GOOGLE_MAX_HUE / (self.OPENCV_MAX_HUE * ndarr[0]),
-            self.GOOGLE_MAX_SAT / (self.OPENCV_MAX_SAT * ndarr[1]),
-            self.GOOGLE_MAX_VAL / (self.OPENCV_MAX_VAL * ndarr[2])
-        ])
+        hue = 0 if (ndarr[0] == 0) else self.OPENCV_MAX_HUE / (self.GOOGLE_MAX_HUE / ndarr[0])
+        sat = 0 if (ndarr[1] == 0) else self.OPENCV_MAX_SAT / (self.GOOGLE_MAX_SAT / ndarr[1])
+        val = 0 if (ndarr[2] == 0) else self.OPENCV_MAX_VAL / (self.GOOGLE_MAX_VAL / ndarr[2])
+        return np.array([hue, sat, val])
 
     def id_generator(self, size=28, chars=string.ascii_uppercase + string.digits):
         return ''.join(random.choice(chars) for _ in range(size))
@@ -111,6 +112,20 @@ class GeoDiffWorker(object):
         subprocess.check_output(['bash','-c', "rm -rf "+inputTmpBMP+" "+outputTmp])
         return data
 
+    def download_img(self, url):
+        if (self._debug):
+            print(" [x] Downloading Image...")
+        url = url.split('https://')[1]
+        host = url.split('/')[0]
+        resource = url.split('.com')[1]
+        conn = http.client.HTTPSConnection(host)
+        payload = ''
+        headers = {}
+        conn.request("GET", resource, payload, headers)
+        res = conn.getresponse()
+        data = res.read()
+        return "data:image/png;base64," + base64.b64encode(data).decode("utf-8", "ignore")
+
 
     def scale(self, polygons, scale_x, center=Point([0,0])):
         """
@@ -129,14 +144,15 @@ class GeoDiffWorker(object):
             print(" [x] Scaling and joining polygons MultiPolygon...")
         m = MultiPolygon([polygons.loc[i].geometry for i in range(polygons.size)])
         g = geopandas.GeoSeries([m])
-        scale_factor = math.sqrt((scale_x**2) / g.area[0])
+        # a = g.area[0]
+        a = 262144 # Usamos area hardcodeada - 262144
+        scale_factor = math.sqrt((scale_x**2) / a)
         g = g.scale(scale_factor, scale_factor)
         x = g.centroid.x[0] - center.x if (g.centroid.x[0] < center.x) else center.x - g.centroid.x[0]
         y = g.centroid.y[0] - center.y if (g.centroid.y[0] < center.y) else center.y - g.centroid.y[0]
         g = g.translate(xoff = x, yoff = y)
-        import pdb; pdb.set_trace()
         if (self._debug):
-            print(" [x] MultiPolygon scaled with scale_factor: {} - Result MultiPolygon Area: {}".format(scale_factor, g.area[0]))
+            print(" [x] MultiPolygon scaled with scale_factor: {} - Result MultiPolygon Area: {}".format(scale_factor, a))
         return g.to_json()
 
 
@@ -179,6 +195,10 @@ class GeoDiffWorker(object):
             print(" [x] Received - Body: {}".format(body[:140]))
         start_time = time.time()
         data = json.loads(body)
+        # Descargamos la imagen si no esta
+        if (not 'rawImage' in data['earthImage']):
+            data['earthImage']['rawImage'] = self.download_img(data['earthImage']['url'])
+
         filteredImage = self.applyFilter(data['earthImage']['rawImage'])
         geoOutput = self.pngToGeoJson(filteredImage)
         data['vectorImage'] = self.scale(geoOutput, data['earthImage']['dim'], Point(data['earthImage']['coordinate']['latitude'], data['earthImage']['coordinate']['longitude']) )
@@ -243,6 +263,7 @@ class GeoDiffWorker(object):
                 self._connection.close()
                 # Start the IOLoop again so Pika can communicate, it will stop on its own when the connection is closed
                 self._connection.ioloop.start()
-            if (self._debug):
-                print(" [!] Host Unrecheable. Reconecting in {} seconds...".format(self._reconection_time))
-            time.sleep(self._reconection_time)
+            except :
+                if (self._debug):
+                    print(" [!] RabbitMQ Host Unrecheable. Reconecting in {} seconds...".format(self._reconection_time))
+                time.sleep(self._reconection_time)

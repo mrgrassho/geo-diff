@@ -29,3 +29,5 @@ ENV KEEP_ALIVE_QUEUE KEEP_ALIVE_QUEUE
 COPY geodiff_worker.py  main.py potrace  ./
 
 RUN chmod 755 potrace
+
+CMD ["python","main.py"]
