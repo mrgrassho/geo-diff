@@ -3,7 +3,6 @@ package com.geodiff.rest;
 import com.geodiff.AppConfig;
 import com.geodiff.WebProperties;
 import com.geodiff.dto.Coordinate;
-import com.geodiff.dto.GeoAsset;
 import com.geodiff.dto.GeoException;
 import com.geodiff.model.GeoImage;
 import com.geodiff.service.GeoDiffService;
@@ -60,14 +59,16 @@ public class GeoController {
     @PostMapping("/img-assets")
     @ResponseBody
     @ResponseStatus(HttpStatus.OK)
-    public HashMap<String, ArrayList<GeoAsset>> newMap(
+    public void newMap(
             @RequestParam(name = "begin-date", required = false)
             @DateTimeFormat(pattern = "yyyy-MM-dd") Date beginDate,
             @RequestParam(name = "end-date", required = false)
             @DateTimeFormat(pattern = "yyyy-MM-dd") Date endDate,
-            @RequestBody ArrayList<Coordinate> coordinates) throws IOException, GeoException, ParseException {
+            @RequestBody ArrayList<Coordinate> coordinates,
+            @RequestBody String resourceClientQueue,
+            @RequestBody String resultClientQueue) throws IOException, GeoException, ParseException {
         logger.info(" [+] Request arrived. Coordinates: " + coordinates );
-        return geoDiffService.createMap(coordinates, beginDate, endDate);
+        geoDiffService.createMapOptimized(coordinates, beginDate, endDate, resourceClientQueue, resultClientQueue);
     }
 
     /**

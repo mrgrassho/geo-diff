@@ -17,16 +17,17 @@
     <div>
         <div id="map" class="map rounded"></div>
         <section id="result-groups-100" class="box rounded">
-            <form class="form-inline">
-                <label>Geometry type &nbsp;</label>
-                <select id="type">
-                    <option value="Box" selected>Box</option>
-                    <option value="None">None</option>
-                </select>
-            </form>
-            <p>Select a geometry type from the dropdown above to start drawing. To finish drawing, click the last point. To activate freehand drawing for lines, polygons, and circles, hold the <code>Shift</code> key.</p>
+            <div id="geometry-type-100">
+                <form class="form-inline">
+                    <label>Geometry type &nbsp;</label>
+                    <select id="type">
+                        <option value="Box" selected>Box</option>
+                        <option value="None">None</option>
+                    </select>
+                </form>
+                <p>Select a geometry type from the dropdown above to start drawing. To finish drawing, click the last point. To activate freehand drawing for lines, polygons, and circles, hold the <code>Shift</code> key.</p>
+            </div>
         </section>
-
     </div>
     <div class="menu-options rounded">
         <p>Date Intervals:</p>
@@ -41,7 +42,7 @@
         <p>Show Options:</p>
         <ul>
             <li>
-                <input type="checkbox" id="vector-resource" value="deforestation" checked="true">
+                <input type="checkbox" id="vector-resource" value="deforestation">
                 <label for="vector-resource">Vectors Images</label>
             </li>
             <li>

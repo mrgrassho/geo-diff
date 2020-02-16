@@ -100,11 +100,11 @@ a.button:hover {
     background-color: #d1dcda;
 }
 
-#result-groups-100 > div > div {
+#results-dates-100  > div {
     margin: 0% 0.5%;
 }
 
-section#result-groups-100 > div {
+#results-dates-100 {
     display: flex;
     border-top: 2px solid;
 }
