@@ -30,10 +30,10 @@ class GeoDiffWorker(object):
     GOOGLE_MAX_SAT = 100
     GOOGLE_MAX_VAL = 100
 
-    def __init__(self, amqp_url, task_queue, res_queue, prefetch_count=1, reconection_time=10, debug=True):
+    def __init__(self, amqp_url, task_queue, res_xchg, prefetch_count=1, reconection_time=10, debug=True):
         self._amqp_url = amqp_url
         self._task_queue = task_queue
-        self._res_queue = res_queue
+        self._res_xchg = res_xchg
         self._channel = None
         self._debug = debug
         self._connection = None
@@ -72,12 +72,15 @@ class GeoDiffWorker(object):
             upper_hsv = self.normalize_HSV(np.array([360,0,100]))
         img = self.data_uri_to_cv2_img(image)
         # blurredImage = cv2.blur(img,(2,2))
-        hsv = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
-        mask = cv2.inRange(hsv, lower_hsv, upper_hsv)
         # import pdb; pdb.set_trace()
+        hsv = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
+        mask = cv2.inRange(hsv, lower_hsv, upper_hsv);
+        # cv2.imwrite("tsti.png", img)
+        # cv2.imwrite("tsti.png", img)
         if (self._debug):
             print(" [x] Filter applied.")
         return mask
+
 
     def normalize_HSV(self, ndarr):
         # For HSV, Hue range is [0,179], Saturation range is [0,255]
@@ -87,7 +90,9 @@ class GeoDiffWorker(object):
         hue = 0 if (ndarr[0] == 0) else self.OPENCV_MAX_HUE / (self.GOOGLE_MAX_HUE / ndarr[0])
         sat = 0 if (ndarr[1] == 0) else self.OPENCV_MAX_SAT / (self.GOOGLE_MAX_SAT / ndarr[1])
         val = 0 if (ndarr[2] == 0) else self.OPENCV_MAX_VAL / (self.GOOGLE_MAX_VAL / ndarr[2])
+        import pdb; pdb.set_trace()
         return np.array([hue, sat, val])
+
 
     def id_generator(self, size=28, chars=string.ascii_uppercase + string.digits):
         return ''.join(random.choice(chars) for _ in range(size))
@@ -124,6 +129,8 @@ class GeoDiffWorker(object):
         conn.request("GET", resource, payload, headers)
         res = conn.getresponse()
         data = res.read()
+        if (data == ''):
+            raise Exception("Empty Response.")
         return "data:image/png;base64," + base64.b64encode(data).decode("utf-8", "ignore")
 
 
@@ -169,22 +176,23 @@ class GeoDiffWorker(object):
         return img
 
 
-    def send(self, message, queue):
+    def send(self, message, reply_to):
         """
         Send message to RabbitMQ Queue.
         """
         json_msg = json.dumps(message)
-        self._channel.queue_declare(queue=queue, durable=True)
+        self._channel.exchange_declare(exchange=self._res_xchg, exchange_type='fanout')
         self._channel.basic_publish(
-            exchange='',
-            routing_key=queue,
+            exchange=self._res_xchg,
+            routing_key='',
             body=json_msg,
             properties=pika.BasicProperties(
                 delivery_mode=2,  # make message persistent
+                reply_to=reply_to
             )
         )
         if (self._debug):
-            print(" [x] Image sent to {} - Body: {} ".format(queue, json_msg[:140]))
+            print(" [x] Image sent to XCHG: {} - Body: {} ".format(self._res_xchg, json_msg[:140]))
 
 
     def callback_task_queue(self, _unused_channel, delivery, properties, body):
@@ -205,7 +213,7 @@ class GeoDiffWorker(object):
         if (self._debug):
             print(" [x] Job done! Image processing took {} seconds.".format(time.time() - start_time))
         self._channel.basic_ack(delivery_tag=delivery.delivery_tag)
-        self.send(data, self._res_queue)
+        self.send(data, properties.reply_to)
 
 
     def on_open_connection(self, _unused_frame):

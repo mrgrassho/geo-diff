@@ -1,7 +1,7 @@
 version: "3.2"
 services:
     rabbitmq-server:
-        image: rabbitmq:3-management
+        build: ./rabbitmq
         hostname: "rabbitmq-server"
         restart: always
         environment:
@@ -11,6 +11,7 @@ services:
             RABBITMQ_DEFAULT_VHOST: "/"
         ports:
             - "15672:15672"
+            - "15674:15674"
             - "5672:5672"
         labels:
             NAME: "rabbitmq-server"
@@ -51,6 +52,10 @@ services:
         deploy:
             mode: replicated
             replicas: 6
+        environment:
+            AMQP_URL: amqp://guest:guest@rabbitmq-server:5672/%2f
+            TASK_QUEUE: TASK_QUEUE
+            RES_XCHG: RESULT_XCHG
         volumes:
             - './worker:/worker'
 
