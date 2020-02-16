@@ -17,6 +17,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
@@ -64,9 +65,30 @@ public class GeoController {
             @DateTimeFormat(pattern = "yyyy-MM-dd") Date beginDate,
             @RequestParam(name = "end-date", required = false)
             @DateTimeFormat(pattern = "yyyy-MM-dd") Date endDate,
-            @RequestBody ArrayList<Coordinate> coordinates) throws GeoException, ParseException {
+            @RequestBody ArrayList<Coordinate> coordinates) throws IOException, GeoException, ParseException {
         logger.info(" [+] Request arrived. Coordinates: " + coordinates );
         return geoDiffService.createMap(coordinates, beginDate, endDate);
+    }
+
+    /**
+     * Carga un nuevo mapa.
+     *
+     *  @param    beginDate         FechaDesde >= fecha.
+     *  @param    endDate           FechaHasta <= fecha.
+     *  @param    coordinates       Lista de coordenadas que se quieren procesar.
+     *  @return                     Lista de Imagenes.
+     * */
+    @PostMapping("/new-map")
+    @ResponseBody
+    @ResponseStatus(HttpStatus.OK)
+    public HashMap<String, String> createMap(
+            @RequestParam(name = "begin-date", required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd") Date beginDate,
+            @RequestParam(name = "end-date", required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd") Date endDate,
+            @RequestBody ArrayList<Coordinate> coordinates) throws IOException {
+        logger.info(" [+] Request arrived. Coordinates: " + coordinates );
+        return geoDiffService.initClientRequest(coordinates, beginDate, endDate);
     }
 
     /**

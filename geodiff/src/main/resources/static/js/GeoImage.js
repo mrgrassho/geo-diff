@@ -77,38 +77,50 @@ GeoImage.getAssets = function (coords) {
   });
 }
 
-GeoImage.getImg = function(date, coord, filter) {
-  let minLatLon = proj.fromLonLat([coord['longitude']+GeoImage.offset, coord['latitude']-GeoImage.offset]);
-  let maxLatLon = proj.fromLonLat([coord['longitude']-GeoImage.offset, coord['latitude']+GeoImage.offset]);
-  let url =  GeoImage.buildImgURL(date, coord['latitude'], coord['longitude'], filter);
+GeoImage.getHashCode = function(s){
+  return s.split("").reduce(function(a,b){a=((a<<5)-a)+b.charCodeAt(0);return a&a},0);
+}
+
+GeoImage.getImg = function(item) {
+  let minLatLon = proj.fromLonLat([item["centerCoordinate"]['longitude']+GeoImage.offset, item["centerCoordinate"]['latitude']-GeoImage.offset]);
+  let maxLatLon = proj.fromLonLat([item["centerCoordinate"]['longitude']-GeoImage.offset, item["centerCoordinate"]['latitude']+GeoImage.offset]);
+  let url =  GeoImage.buildImgURL(item["date"], item["centerCoordinate"]["latitude"], item["centerCoordinate"]["longitude"], "RAW");
+  let geoId = GeoImage.getHashCode(JSON.stringify(item) + "IMG");
   // LLAMADA AJAX PARA LA IMAGEN;
-  Ajax.request( "GET", url, {}, function (xhr) {
-  // LLEGA EL RECURSO Y SE AGREGA LA CAPA.
-    if (xhr != null) {
-      GeoImage.Map.addLayer(
-        new ImageLayer({
+  if (GeoImage.Layers[geoId] == null){
+    Ajax.request( "GET", url, {}, function (xhr) {
+    // LLEGA EL RECURSO Y SE AGREGA LA CAPA.
+      if (xhr != null && xhr !== "") {
+        console.log(" [+] Resource available. URL:"+ url);
+        GeoImage.Layers[geoId] = new ImageLayer({
           source: new Static({
             imageLoadFunction : function(image){ image.getImage().src = xhr; },
             crossOrigin: '',
             projection: 'EPSG:3857',
             imageExtent: [minLatLon[0], minLatLon[1], maxLatLon[0], maxLatLon[1]]
           })
-        })
-      );
-    }
-  });
+        });
+        GeoImage.Map.addLayer(GeoImage.Layers[geoId]);
+      } else {
+        console.log(" [!] Resource NOT available. URL:"+ url);
+      }
+    });
+  } else {
+    GeoImage.Layers[geoId].setVisible(true);
+  }
 }
 
-GeoImage.getVector = function(date, lat, lon, filter) {
-  let url =  GeoImage.buildVectorURL(date, lat, lon, filter);
+GeoImage.getVector = function(item) {
+  let url =  GeoImage.buildVectorURL(item["date"], item["centerCoordinate"]["latitude"], item["centerCoordinate"]["longitude"], "RAW");
+  let geoId = GeoImage.getHashCode(JSON.stringify(item) + "VECTOR");
   // LLAMADA AJAX PARA LA IMAGEN;
-  Ajax.request( "GET", url, {}, function (xhr) {
+  if (GeoImage.Layers[geoId] == null){
+    Ajax.request( "GET", url, {}, function (xhr) {
   // LLEGA EL RECURSO Y SE AGREGA LA CAPA.
-    if (xhr != null && xhr !== "") {
-      let geojsonObject = JSON.parse(xhr);
-      console.log(" [+] Resource available. URL:"+ url);
-      GeoImage.Map.addLayer(
-        new VectorLayer({
+      if (xhr != null && xhr !== "") {
+        let geojsonObject = JSON.parse(xhr);
+        console.log(" [+] Resource available. URL:"+ url);
+        GeoImage.Layers[geoId] = new VectorLayer({
           source: new VectorSource({
             features: (new GeoJSON()).readFeatures(geojsonObject)
           }),
@@ -119,12 +131,15 @@ GeoImage.getVector = function(date, lat, lon, filter) {
              }));
              return GeoImage.style;
            }
-        })
-      );
-    } else {
+        });
+        GeoImage.Map.addLayer(GeoImage.Layers[geoId]);
+      } else {
         console.log(" [!] Resource NOT available. URL:"+ url);
-    }
-  });
+      }
+    });
+  } else {
+    GeoImage.Layers[geoId].setVisible(true);
+  }
 }
 
 GeoImage.buildSlider = function() {
@@ -167,7 +182,7 @@ GeoImage.loadMap = function (id) {
   let lon = group[0]['centerCoordinate']["longitude"];
   //GeoImage.View.setCenter([lat, lon]);
   for (var item of group) {
-    GeoImage.getImg(item['date'], item['centerCoordinate'], 'RAW');
+    GeoImage.getImg(item);
   }
 }
 
@@ -177,7 +192,7 @@ GeoImage.loadMapVector = function (id) {
   let lon = group[0]['centerCoordinate']["longitude"];
   //GeoImage.View.setCenter([lat, lon]);
   for (var item of group) {
-    GeoImage.getVector(item['date'], item['centerCoordinate']["latitude"], item['centerCoordinate']["longitude"], 'RAW');
+    GeoImage.getVector(item);
   }
 }
 
@@ -194,6 +209,7 @@ GeoImage.init = function (offset, baseURL) {
   console.log("Setting baseURL to " + baseURL);
   GeoImage.offset  = offset;
   GeoImage.baseURL = baseURL;
+  GeoImage.Layers = {};
 
   var source = new VectorSource({wrapX: false});
 

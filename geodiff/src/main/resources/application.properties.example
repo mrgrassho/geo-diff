@@ -15,6 +15,7 @@ spring.data.rabbitmq.task_queue=TASK_QUEUE
 
 # Nasa API
 spring.data.nasa.api_token=6k9ilibCQcusmZl9RRczizWjFC7K0gkviEt2G4Qa
+# spring.data.nasa.api_token=eRnhp89rKUAfdMBFudSIS7RyvtVabc7i1h5wVz3J
 spring.data.nasa.cloudscore_max=0.2
 spring.data.nasa.dimension=0.025
 

@@ -104,7 +104,7 @@ a.button:hover {
     margin: 0% 0.5%;
 }
 
-div#result-groups-100 > div {
+section#result-groups-100 > div {
     display: flex;
     border-top: 2px solid;
 }

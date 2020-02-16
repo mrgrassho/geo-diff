@@ -3,7 +3,6 @@ package com.geodiff.service;
 
 import com.geodiff.AppConfig;
 import com.geodiff.dto.Coordinate;
-import com.geodiff.dto.GeoAsset;
 import com.geodiff.dto.GeoException;
 import com.geodiff.model.GeoImage;
 import com.geodiff.repository.FilterOptionRepository;
@@ -25,12 +24,14 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.TimeoutException;
 
 @Service
@@ -45,6 +46,14 @@ public class GeoDiffService {
     private Channel channel;
     private Gson gson = new Gson();
     private Logger logger = LoggerFactory.getLogger(GeoDiffService.class);
+    private ConnectionFactory factory;
+
+    private static final String CHAR_LOWER = "abcdefghijklmnopqrstuvwxyz";
+    private static final String CHAR_UPPER = CHAR_LOWER.toUpperCase();
+    private static final String NUMBER = "0123456789";
+    private static final String DATA_FOR_RANDOM_STRING = CHAR_LOWER + CHAR_UPPER + NUMBER;
+    private static SecureRandom random = new SecureRandom();
+
 
     @Autowired
     private GeoImageRepository geoImageRepository;
@@ -60,11 +69,9 @@ public class GeoDiffService {
         this.initQueues();
         this.getResultFromQueue();
     }
-
-    public HashMap<String, ArrayList<GeoAsset>> createMap(ArrayList<Coordinate> coordinates, Date beginDate, Date endDate) throws GeoException, ParseException {
+    
+    public void createMapOptimized(ArrayList<Coordinate> coordinates, Date beginDate, Date endDate, String resourceClientQueue, String resultClientQueue) throws GeoException, ParseException {
         NasaApi nasaApi = new NasaApi(appConfig.configData().API_KEY);
-        ArrayList<EarthAssets> earthAssets = new ArrayList<>();
-        HashMap<String, ArrayList<GeoAsset>> geoAssets =  new HashMap<>();
         try {
             String beginDateStr = (beginDate != null) ? df.format(beginDate): null;
             String endDateStr = (endDate != null) ? df.format(endDate): null;
@@ -77,27 +84,29 @@ public class GeoDiffService {
                     for (int i = 0; i < eas.getCount(); i++) {
                         EarthAssets.EarthAsset ea = eas.getResults().get(i);
                         try {
-                            if (null == this.findGeoImage(
-                                            eas.getCoordinate().getLatitude(),
-                                            eas.getCoordinate().getLongitude(),
-                                            timestamp.parse(ea.getDate()),
-                                            "RAW")) {
+                            GeoImage gi = new GeoImage();;
+                            if (null == (gi = this.findGeoImage(
+                                    eas.getCoordinate().getLatitude(),
+                                    eas.getCoordinate().getLongitude(),
+                                    timestamp.parse(ea.getDate()),
+                                    "RAW"))) {
                                 EarthImage e = nasaApi.getEarthImage(eas.getCoordinate().getLatitude(), eas.getCoordinate().getLongitude(), appConfig.configData().DIMENSION, ea.getDate().split("T")[0], CLOUDSCORE);
                                 // Si es una imagen muy nublada no la guardamos.
                                 if ( appConfig.configData().CLOUDSCORE_MAX.compareTo(e.getCloudScore()) >= 0) {
                                     e.setCoordinate(eas.getCoordinate());
                                     e.setDim(appConfig.configData().DIMENSION);
-                                    GeoImage gi = new GeoImage();
+                                    gi = new GeoImage();
                                     gi.setEarthImage(e);
                                     gi.setFilterOption(filterOptionRepository.findByName("RAW"));
                                     geoImageRepository.save(gi);
-                                    this.sendTaskToQueue(gi);
-                                    earthAssets.add(eas);
+                                    this.sendGeoImageToQueue(gi, appConfig.configData().TASK_QUEUE_NAME, resourceClientQueue);
+                                    this.sendGeoImageToQueue(gi, resourceClientQueue, "");
                                 } else {
                                     logger.info(" Img is being ignored. The cloud_score is " +  e.getCloudScore());
                                 }
                             } else {
-                                earthAssets.add(eas);
+                                this.sendGeoImageToQueue(gi, resourceClientQueue, "");
+                                this.sendGeoImageToQueue(gi, resultClientQueue, "");
                             }
                         } catch (IOException e) {
                             e.printStackTrace();
@@ -106,52 +115,73 @@ public class GeoDiffService {
                 }
             }
 
-
-            // SE ASUME QUE TODOS LOS earthAssets tienen la misma LONGITUD
-            // REVISAR ESTO PARA QUE CARGUE UNA IMAGEN VACIA SI NO
-            // se tiene el resultado
-            if (!earthAssets.isEmpty()){
-                for (int i = 0; i < earthAssets.size(); i++) {
-                    String groupDate = "";
-                    for (int j = 0; j <  earthAssets.get(i).getCount(); j++) {
-                        ArrayList<GeoAsset> ga;
-                        String ts = earthAssets.get(i).getResults().get(j).getDate();
-                        String id = earthAssets.get(i).getResults().get(j).getId();
-                        String date = earthAssets.get(i).getResults().get(j).getDate().split("T")[0];
-                        groupDate = (Integer.valueOf(dtf.parseDateTime(date).toString("dd")) < 16) ? dtf.parseDateTime(date).withDayOfMonth(1).toString(dateTimePattern) : dtf.parseDateTime(date).withDayOfMonth(16).toString(dateTimePattern);
-                        if (null == (ga = geoAssets.get(groupDate))) {
-                            ga = new ArrayList<>();
-                        }
-                        Coordinate coord = earthAssets.get(i).getCoordinate();
-                        ga.add(new GeoAsset(id, ts, coord));
-                        geoAssets.put(groupDate, ga);
-                    }
-                    logger.info(" [*] New Coordinates Group. Key: " + groupDate + ", Qty: " + geoAssets.get(groupDate).size());
-                }
-            }
-
-            return geoAssets;
-
         } catch (IOException e) {
             throw new GeoException(e.getMessage());
         }
     }
 
+    public static String generateRandomString(int length) {
+        if (length < 1) throw new IllegalArgumentException();
+
+        StringBuilder sb = new StringBuilder(length);
+        for (int i = 0; i < length; i++) {
+            // 0-62 (exclusive), random returns 0-61
+            int rndCharAt = random.nextInt(DATA_FOR_RANDOM_STRING.length());
+            char rndChar = DATA_FOR_RANDOM_STRING.charAt(rndCharAt);
+            sb.append(rndChar);
+        }
+        return sb.toString();
+
+    }
+
+    public HashMap<String, String> initClientQueues() throws IOException {
+        HashMap<String, String> tmp =  new HashMap<>();
+        // Temporary Resource Queue for given Client
+        tmp.put("resource_queue", this.channel.queueDeclare(generateRandomString(60),true, false, true, null).getQueue());
+        // Temporary Result Queue for given Client
+        tmp.put("results_queue", this.channel.queueDeclare(generateRandomString(60),true, false, true, null).getQueue());
+        tmp.put("user", factory.getUsername());
+        tmp.put("pass", factory.getPassword());
+        this.channel.queueBind(tmp.get("results_queue"), appConfig.configData().RESULT_XCHG_NAME, "");
+        logger.info(" - Client Queue declared (results_queue): " + tmp.get("results_queue"));
+        logger.info(" - Client Queue declared (resource_queue): " + tmp.get("resource_queue"));
+        return tmp;
+    }
+
+    public HashMap<String, String> initClientRequest(ArrayList<Coordinate> coordinates, Date beginDate, Date endDate) throws IOException {
+        HashMap<String, String> clientQueues = this.initClientQueues();
+        Runnable runnable = () -> {
+            try {
+                this.createMapOptimized(coordinates, beginDate, endDate, clientQueues.get("resource_queue"), clientQueues.get("results_queue"));
+            } catch (GeoException | ParseException e) {
+                Thread t = Thread.currentThread();
+                t.getUncaughtExceptionHandler().uncaughtException(t, e);
+            }
+        };
+        Thread thread = new Thread(runnable);
+        thread.start();
+        return clientQueues;
+    }
+
     public void initQueues() throws IOException, TimeoutException, NoSuchAlgorithmException, KeyManagementException, URISyntaxException {
-        ConnectionFactory factory = new ConnectionFactory();
-        factory.setUri( appConfig.configData().AMQP_URI);
+        this.factory = new ConnectionFactory();
+        this.factory.setUri( appConfig.configData().AMQP_URI);
         Connection connection = factory.newConnection();
         this.channel = connection.createChannel();
+        this.channel.exchangeDeclare(appConfig.configData().RESULT_XCHG_NAME, "fanout");
         this.channel.queueDeclare( appConfig.configData().TASK_QUEUE_NAME, true, false, false, null);
         this.channel.queueDeclare( appConfig.configData().RESULT_QUEUE_NAME, true, false, false, null);
-        logger.info(" - Queues Declared: " + appConfig.configData().TASK_QUEUE_NAME + ", " + appConfig.configData().RESULT_QUEUE_NAME);
+        this.channel.queueBind(appConfig.configData().RESULT_QUEUE_NAME, appConfig.configData().RESULT_XCHG_NAME, "");
+        logger.info(" - Queues declared: " + appConfig.configData().TASK_QUEUE_NAME + ", " + appConfig.configData().RESULT_QUEUE_NAME);
+        logger.info(" - Exchange declared: " + appConfig.configData().RESULT_XCHG_NAME + " bound to " + appConfig.configData().RESULT_QUEUE_NAME);
     }
 
 
-    public void sendTaskToQueue(GeoImage gi) throws IOException {
+    public void sendGeoImageToQueue(GeoImage gi, String queue, String replyMq) throws IOException {
         String m = gson.toJson(gi);
-        channel.basicPublish("",  appConfig.configData().TASK_QUEUE_NAME,
-                    MessageProperties.PERSISTENT_TEXT_PLAIN,
+        AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().replyTo(replyMq).build();
+        channel.basicPublish("",  queue,
+                    props,
                     m.getBytes("UTF-8"));
         logger.info(" Image published to RabbitMQ Queue: " + m.substring(0, 120));
     }
@@ -168,6 +198,7 @@ public class GeoDiffService {
                 gi.setVectorImage(g.getVectorImage());
                 gi.getEarthImage().setRawImage(g.getEarthImage().getRawImage());
                 geoImageRepository.save(gi);
+                this.sendGeoImageToQueue(gi, delivery.getProperties().getReplyTo(), "");
                 logger.info(" [*] New Image arrived. DATA: " + message.substring(0,60));
             } else {
                 logger.error(" [!] Image NOT found in the DB. Ignoring result.");
@@ -181,17 +212,20 @@ public class GeoDiffService {
         if ( lat == null  || lon == null || t == null || nameFilter == null) throw new GeoException("Null params found.") ;
         Coordinate coord = this.nearCoordinate(new Coordinate(lat, lon));
         logger.info(" [*] New Request for COORDS(lat, lon):" + coord + " - Date:"+ timestamp.format(t) + " - Name Filter:" + nameFilter);
-        GeoImage g = geoImageRepository.findByCoordinateAndDateAndFilter(coord.getLatitude(), coord.getLongitude(), timestamp.format(t));
-        if (g == null)
+        List<GeoImage> g = geoImageRepository.findByCoordinateAndDateAndFilter(coord.getLatitude(), coord.getLongitude(), timestamp.format(t));
+        if (g.isEmpty()) {
             logger.info("Image Not Found.");
-        else
-            logger.info("Image Coords (lat, lon)" + g.getEarthImage().getCoordinate());
-        return g;
+            return null;
+        } else {
+            logger.info("Image Coords (lat, lon)" + g.get(0).getEarthImage().getCoordinate());
+            return g.get(0);
+        }
+
     }
 
     public GeoImage findGeoImageByEarthImageId(String id) throws GeoException {
         if (id != null) {
-            return geoImageRepository.findByEarthImageId(id);
+            return geoImageRepository.findByEarthImageId(id).get(0);
         } else {
             throw new GeoException("Image Null");
         }
