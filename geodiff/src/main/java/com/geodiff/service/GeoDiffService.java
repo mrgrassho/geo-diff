@@ -171,6 +171,7 @@ public class GeoDiffService {
         this.channel.exchangeDeclare(appConfig.configData().RESULT_XCHG_NAME, "fanout");
         this.channel.queueDeclare( appConfig.configData().TASK_QUEUE_NAME, true, false, false, null);
         this.channel.queueDeclare( appConfig.configData().RESULT_QUEUE_NAME, true, false, false, null);
+        this.channel.queueDeclare( appConfig.configData().KEEP_ALIVE_QUEUE_NAME, true, false, false, null);
         this.channel.queueBind(appConfig.configData().RESULT_QUEUE_NAME, appConfig.configData().RESULT_XCHG_NAME, "");
         logger.info(" - Queues declared: " + appConfig.configData().TASK_QUEUE_NAME + ", " + appConfig.configData().RESULT_QUEUE_NAME);
         logger.info(" - Exchange declared: " + appConfig.configData().RESULT_XCHG_NAME + " bound to " + appConfig.configData().RESULT_QUEUE_NAME);

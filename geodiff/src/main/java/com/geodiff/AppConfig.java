@@ -68,6 +68,9 @@ public class AppConfig {
         @Value("${spring.data.rabbitmq.res_queue}")
         public String RESULT_QUEUE_NAME;
 
+        @Value("${spring.data.rabbitmq.keep_alive_queue}")
+        public String KEEP_ALIVE_QUEUE_NAME;
+
         @Value("${spring.data.rabbitmq.res_xchg}")
         public String RESULT_XCHG_NAME;
     }
