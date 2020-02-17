@@ -10,7 +10,7 @@ import pandas
 # Constants
 max_timeout = '00:10:00'  # 10 segundos
 last_timestamps = dict()  # ultimos keep alives de cada worker |  par  id_container : timestamp
-last_timestamps = {233333: '13/02/2020 18:24:00', 4455555: '14/02/2020 18:25:00', 667777: '14/02/2020 18:25:50'}
+#last_timestamps = {233333: '13/02/2020 18:24:00', 4455555: '14/02/2020 18:25:00', 667777: '14/02/2020 18:25:50'}
 queue = "KEEP_ALIVE_QUEUE"
 image = "dockerdeploy_worker:latest"
 host = "localhost"
@@ -36,7 +36,6 @@ def calculate_timeout_workers():
                 name_worker = prox_worker()
                 new_container = client.containers.run(image, name=name_worker, tty=True, detach=True, stdin_open=True)
                 last_timestamps[new_container.attrs['id']] = str(datetime.now())  # actualizo lista de containers.
-
 
 
 def prox_worker():
