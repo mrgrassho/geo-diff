@@ -12,7 +12,7 @@ services:
         ports:
             - "15672:15672"
             - "15674:15674"
-            - "1672:5672"
+            - "5672:5672"
         labels:
             NAME: "rabbitmq-server"
         healthcheck:

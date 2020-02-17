@@ -44,7 +44,8 @@
 
 - [x] Testear.
 - [ ] Reducir tamaño de imagen de Docker (~2.5 GB). Se va al carajo.
-- [x] Revisar el metodo que mueve un Polygon que parece que esta al reves (lon, lat) en vez de (lat, lon)
+- [x] Revisar el metodo que mueve un Polygon que parece que esta al reves (lon, lat) en vez de (lat, lon).
+- [ ] Revisar el filtro que aplica el worker
 
 #### Backend
 
@@ -52,6 +53,14 @@
 - [x] Testear.
 - [x] Revisar CloudScore (no funca el filtro).
 - [x] Pensar manera de optimizar el proceso. (Que lo workers descarguen las imagenes. Esta opcion es facil de implementar con las librerias httpclient)
+- [ ] Jugar con el tamaño del rectangulo que solicita el cliente. Y realizar una petición de dim = min(longitud del lado del rectangulo).
+- [ ] Ajustar la petición de las imagenes para que ocupe todas las coordenadas del rectangulo. Pedir mas resources para abajo del rectangulo.
+
 
 #### Mongo
 - [x] Revisar container que no esta tomando la configuracion de init-mongo.js
+
+#### FrontEnd
+
+- [ ] Revisar que los divs de fechas se carguen en orden cronologico.
+- [ ] Agrupar los divs de fechas por mes/ por cuatrimestre / por año para evitar llenar de botones.

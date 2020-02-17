@@ -69,12 +69,25 @@ GeoImage.onResourceMessage = function(d) {
   GeoImage.addElementToSlider(group);
 }
 
+GeoImage.intersecPolygons = function (pol1, pol2) {
+  var polygonInit = turf.polygon(pol1);
+  var poligons = turf.multiPolygon(pol2).geometry.coordinates.map(c => turf.polygon(c));
+  var res = polygonInit;
+  for (var p of poligons) {
+    let tmp = turf.intersect(res, p)
+    res = (tmp != null) ? tmp : res;
+  }
+  console.log(res);
+  return res;
+}
+
 GeoImage.resultVector = function(item) {
   let geoIdVector = GeoImage.getHashCode(item, "VECTOR");
   let group = GeoImage.getDateGroup(item["earthImage"]["date"]);
+  let multiPolygon = GeoImage.intersecPolygons(GeoImage.feature.getGeometry().getCoordinates(), (new GeoJSON()).readFeatures(item["vectorImage"])[0].getGeometry().getCoordinates());
   GeoImage.Layers[geoIdVector] = new VectorLayer({
     source: new VectorSource({
-      features: (new GeoJSON()).readFeatures(item["vectorImage"])
+      features: (new GeoJSON()).readFeatures(multiPolygon)
     }),
      style: function(feature) {
        let style = GeoImage.style.clone();
@@ -233,10 +246,6 @@ GeoImage.init = function (offset, baseURL) {
   });
 
   GeoImage.style = new Style({
-    stroke: new Stroke({
-     color: '#319FD3',
-     width: 1
-    }),
     text: new Text({
      font: '12px Calibri,sans-serif',
      fill: new Fill({
@@ -247,20 +256,20 @@ GeoImage.init = function (offset, baseURL) {
        width: 3
      })
     })
-    });
+  });
 
 
   source.on('addfeature', function(evt){
-    var feature = evt.feature;
-    var coords = feature.getGeometry().getCoordinates()[0];
-    var coordConverted = [];
-    for (co of coords) {
-      let coord = {'latitude':0,'longitude':0};
-      coord['latitude'] = co[1];
-      coord['longitude'] = co[0];
-      console.log(coord);
-      coordConverted.push(coord);
-    }
+    GeoImage.feature = evt.feature;
+    let newCoords = GeoImage.feature.getGeometry().getCoordinates()[0].map(
+      function (co) {
+        return [Math.floor(co[0] * 1000) / 1000, Math.floor(co[1] * 1000) / 1000];
+      }
+    );
+    GeoImage.feature.getGeometry().setCoordinates([newCoords]);
+    let coordConverted = newCoords.map( function(co) {
+        return {'latitude': co[1],'longitude': co[0]};
+    });
     GeoImage.requestNewMap(coordConverted);
   });
 
