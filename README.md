@@ -8,15 +8,29 @@ A continuación definiremos las instrucciones para poder tener el proyecto corri
 
 ### Prerequisitos
 
-Para poder instalar el proyecto primero es necesario instalar [Docker](https://www.docker.com/).
+Para poder instalar el proyecto primero es necesario [instalar Docker](https://www.docker.com/).
+
+También es necesario registrarse en el sitio web de la NASA para generar una [NASA API KEY](https://api.nasa.gov/#singUp) ya que es la fuente de las imagenes satelitales de GeoDiff.
 
 ### Instalación
 
 A continuación definiremos los pasos para correr el proyecto.
 
 ```
-git clone ''
-cd /docker-deploy
+git clone https://github.com/mrgrassho/geo-diff
+```
+
+Una vez generada el **API Token** indicada en los **Prerequisitos**, sobre una terminal:
+```
+cd docker-deploy/backend
+cp application.properties.example application.properties
+```
+Abrir el archivo `docker-deploy/backend/application.properties` con un editor de texto y reemplazar en la linea `spring.data.nasa.api_token=<token>` por el `<token>`generado.
+
+Luego corremos:
+```
+cd ..
+cp docker-compose.yml.example docker-compose.yml
 docker-compose --compatibility up
 ```
 
