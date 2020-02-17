@@ -15,16 +15,14 @@ spring.data.rabbitmq.task_queue=TASK_QUEUE
 spring.data.rabbitmq.res_xchg=RESULT_XCHG
 
 # Nasa API
-spring.data.nasa.api_token=6k9ilibCQcusmZl9RRczizWjFC7K0gkviEt2G4Qa
-<<<<<<< Updated upstream
-#spring.data.nasa.api_token=eRnhp89rKUAfdMBFudSIS7RyvtVabc7i1h5wVz3J
-#spring.data.nasa.api_token=DEMO_KEY
-spring.data.nasa.cloudscore_max=0.3
-=======
-# spring.data.nasa.api_token=eRnhp89rKUAfdMBFudSIS7RyvtVabc7i1h5wVz3J
+# maxi
+# spring.data.nasa.api_token=6k9ilibCQcusmZl9RRczizWjFC7K0gkviEt2G4Qa
+# mati
 # spring.data.nasa.api_token=7ySQkIINYV0HIfPCIFz3zzYz8luXk4tM1hLM6NpA
-spring.data.nasa.cloudscore_max=0.2
->>>>>>> Stashed changes
+# vic
+# spring.data.nasa.api_token=eRnhp89rKUAfdMBFudSIS7RyvtVabc7i1h5wVz3J
+# spring.data.nasa.api_token=DEMO_KEY
+spring.data.nasa.cloudscore_max=0.3
 spring.data.nasa.dimension=0.025
 
 # Server Config
