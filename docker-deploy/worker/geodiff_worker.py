@@ -209,7 +209,7 @@ class GeoDiffWorker(object):
 
         filteredImage = self.applyFilter(data['earthImage']['rawImage'])
         geoOutput = self.pngToGeoJson(filteredImage)
-        data['vectorImage'] = self.scale(geoOutput, data['earthImage']['dim'], Point(data['earthImage']['coordinate']['latitude'], data['earthImage']['coordinate']['longitude']) )
+        data['vectorImage'] = self.scale(geoOutput, data['earthImage']['dim'], Point(data['earthImage']['coordinate']['longitude'] , data['earthImage']['coordinate']['latitude']) )
         if (self._debug):
             print(" [x] Job done! Image processing took {} seconds.".format(time.time() - start_time))
         self._channel.basic_ack(delivery_tag=delivery.delivery_tag)

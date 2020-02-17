@@ -266,7 +266,7 @@ public class GeoDiffService {
         ArrayList<Coordinate> tmp_list = new ArrayList<Coordinate>();
         for (double i = coords.get(0).getLongitude(); i <= coords.get(1).getLongitude(); i = i + appConfig.configData().DIMENSION){
             for (double j = coords.get(0).getLatitude(); j <= coords.get(3).getLatitude(); j = j + appConfig.configData().DIMENSION){
-                tmp_list.add(new Coordinate(i, j));
+                tmp_list.add(new Coordinate(j, i));
             }
         }
         logger.info(" BoxToList -> " + tmp_list);
