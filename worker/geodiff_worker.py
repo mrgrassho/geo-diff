@@ -4,6 +4,7 @@
 import geopandas
 from shapely.geometry.multipolygon import MultiPolygon
 from shapely.geometry.point import Point
+from datetime import datetime
 import pika
 import json
 import sys
@@ -28,7 +29,8 @@ class GeoDiffWorker(object):
     GOOGLE_MAX_SAT = 100
     GOOGLE_MAX_VAL = 100
 
-    def __init__(self, amqp_url, task_queue, res_queue, keep_alive_queue, prefetch_count=1, reconection_time=10, debug=True):
+    def __init__(self, id_worker, amqp_url, task_queue, res_queue, keep_alive_queue, prefetch_count=1, reconection_time=10, debug=True):
+        self._id_worker = id_worker
         self._amqp_url = amqp_url
         self._task_queue = task_queue
         self._res_queue = res_queue
@@ -188,7 +190,9 @@ class GeoDiffWorker(object):
             print(" [x] Job done! Image processing took {} seconds.".format(time.time() - start_time))
         self._channel.basic_ack(delivery_tag=delivery.delivery_tag)
         self.send(data, self._res_queue)
-
+        #  send keep alive message to admin worker.
+        message_ka = {'id':self._id_worker,'timestamp':str(datetime.now())}
+        self.send(message_ka,self._keep_alive_queue)
 
     def on_open_connection(self, _unused_frame):
         if (self._debug):
