@@ -1,0 +1,77 @@
+version: "3.2"
+services:
+    rabbitmq-server:
+        build: ./rabbitmq
+        hostname: "rabbitmq-server"
+        restart: always
+        environment:
+            RABBITMQ_ERLANG_COOKIE: "SWQOKODSQALRPCLNMEQG"
+            RABBITMQ_DEFAULT_USER: "guest"
+            RABBITMQ_DEFAULT_PASS: "guest"
+            RABBITMQ_DEFAULT_VHOST: "/"
+        ports:
+            - "15672:15672"
+            - "15674:15674"
+            - "5672:5672"
+        labels:
+            NAME: "rabbitmq-server"
+        healthcheck:
+            test: ["CMD", "curl", "-f", "http://localhost:15672"]
+            interval: 30s
+            timeout: 10s
+            retries: 5
+
+    mongo-server:
+        build: ./mongo
+        restart: always
+        hostname: "mongo-server"
+        ports:
+            - "27017:27017"
+        environment:
+            MONGO_INITDB_ROOT_USERNAME: root
+            MONGO_INITDB_ROOT_PASSWORD: example
+        volumes:
+            - ./mongo/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js
+
+    mongo-express:
+        image: mongo-express
+        restart: always
+        ports:
+            - "8081:8081"
+        environment:
+            ME_CONFIG_MONGODB_ADMINUSERNAME: root
+            ME_CONFIG_MONGODB_ADMINPASSWORD: example
+            ME_CONFIG_MONGODB_SERVER: mongo-server
+
+    worker:
+        build: ./worker
+        restart: always
+        depends_on:
+            - rabbitmq-server
+        tty: true
+        deploy:
+            mode: replicated
+            replicas: 6
+        environment:
+            AMQP_URL: amqp://guest:guest@rabbitmq-server:5672/%2f
+            TASK_QUEUE: TASK_QUEUE
+            RES_XCHG: RESULT_XCHG
+        volumes:
+            - './worker:/worker'
+
+    backend:
+        build: ./backend
+        restart: always
+        ports:
+            - "8080:8080"
+        depends_on:
+            - rabbitmq-server
+            - mongo-server
+        tty: true
+        volumes:
+            - './backend:/backend'
+
+# Host volumes used to store code.
+volumes:
+    worker:
+    backend:
