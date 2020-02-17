@@ -28,10 +28,11 @@ class GeoDiffWorker(object):
     GOOGLE_MAX_SAT = 100
     GOOGLE_MAX_VAL = 100
 
-    def __init__(self, amqp_url, task_queue, res_queue, prefetch_count=1, reconection_time=10, debug=True):
+    def __init__(self, amqp_url, task_queue, res_queue, keep_alive_queue, prefetch_count=1, reconection_time=10, debug=True):
         self._amqp_url = amqp_url
         self._task_queue = task_queue
         self._res_queue = res_queue
+        self._keep_alive_queue = keep_alive_queue
         self._channel = None
         self._debug = debug
         self._connection = None
