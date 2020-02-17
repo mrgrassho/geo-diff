@@ -60,47 +60,48 @@ GeoImage.onResourceMessage = function(d) {
   let group = GeoImage.getDateGroup(geoImage["earthImage"]["date"]);
   if (GeoImage.resources[group] == null) {
     GeoImage.resources[group] = [];
+    GeoImage.color[group] = GeoImage.getRandomColor();
   }
-  geoImage["geoId"]  = GeoImage.getHashCode(geoImage);
+  geoImage["geoIdVector"]  = GeoImage.getHashCode(geoImage, "VECTOR");
+  geoImage["geoIdRaw"]  = GeoImage.getHashCode(geoImage, "RAW");
   GeoImage.resources[group].push(geoImage);
   GeoImage.initSlider();
   GeoImage.addElementToSlider(group);
 }
 
 GeoImage.resultVector = function(item) {
-  let geoId = GeoImage.getHashCode(item);
-  item["geoId"] = geoId;
-  let color = GeoImage.getRandomColor();
-  GeoImage.Layers[geoId] = new VectorLayer({
+  let geoIdVector = GeoImage.getHashCode(item, "VECTOR");
+  let group = GeoImage.getDateGroup(item["earthImage"]["date"]);
+  GeoImage.Layers[geoIdVector] = new VectorLayer({
     source: new VectorSource({
       features: (new GeoJSON()).readFeatures(item["vectorImage"])
     }),
      style: function(feature) {
-       GeoImage.style.getText().setText(feature.get('name'));
-       GeoImage.style.setFill( new Fill({
-          color: color
+       let style = GeoImage.style.clone();
+       style.setFill( new Fill({
+          color: GeoImage.color[group]
        }));
-       return GeoImage.style;
+       return style;
      }
   });
-  GeoImage.Map.addLayer(GeoImage.Layers[geoId]);
-  GeoImage.Layers[geoId].setVisible(false);
+  GeoImage.Map.addLayer(GeoImage.Layers[geoIdVector]);
+  GeoImage.Layers[geoIdVector].setVisible(false);
 }
 
 GeoImage.resultImage = function(item) {
-  let minLatLon = [item["earthImage"]["coordinate"]['latitude']-GeoImage.offset, item["earthImage"]["coordinate"]['longitude']-GeoImage.offset];
-  let maxLatLon = [item["earthImage"]["coordinate"]['latitude']+GeoImage.offset, item["earthImage"]["coordinate"]['longitude']+GeoImage.offset];
-  let geoId = GeoImage.getHashCode(item);
-  item["geoId"] = geoId;
-  GeoImage.Layers[geoId] = new ImageLayer({
+  let offset = item["earthImage"]["dim"] / 2;
+  let minLatLon = [item["earthImage"]["coordinate"]['longitude']-offset, item["earthImage"]["coordinate"]['latitude']-offset];
+  let maxLatLon = [item["earthImage"]["coordinate"]['longitude']+offset, item["earthImage"]["coordinate"]['latitude']+offset];
+  let geoIdRaw = GeoImage.getHashCode(item, "RAW");
+  GeoImage.Layers[geoIdRaw] = new ImageLayer({
     source: new Static({
       imageLoadFunction : function(image){ image.getImage().src = item["earthImage"]["rawImage"]; },
       crossOrigin: '',
       imageExtent: [minLatLon[0], minLatLon[1], maxLatLon[0], maxLatLon[1]]
     })
   });
-  GeoImage.Map.addLayer(GeoImage.Layers[geoId]);
-  GeoImage.Layers[geoId].setVisible(false);
+  GeoImage.Map.addLayer(GeoImage.Layers[geoIdRaw]);
+  GeoImage.Layers[geoIdRaw].setVisible(false);
 }
 
 GeoImage.onResultMessage = function(d) {
@@ -110,7 +111,7 @@ GeoImage.onResultMessage = function(d) {
   GeoImage.resultVector(geoImage);
   GeoImage.resultImage(geoImage);
   if (group == GeoImage.selectedGroup) {
-    GeoImage.loadMapCentralized(group)
+    //GeoImage.loadMapCentralized(group)
   }
 }
 
@@ -179,26 +180,30 @@ GeoImage.loadMapCentralized = function (group) {
   GeoImage.selectedGroup = group;
   for (var layers of Object.values(GeoImage.Layers)){
        layers.setVisible(false);
+       layers.setOpacity(1);
   }
   if (document.getElementById("raw-resource").checked) {
       for (let item of GeoImage.resources[group]){
-        if (GeoImage.Layers[item['geoId']] != null){
-          GeoImage.Layers[item['geoId']].setVisible(true);
-        }
+          if (GeoImage.Layers[item['geoIdRaw']] != null){
+            GeoImage.Layers[item['geoIdRaw']].setVisible(true);
+          }
       }
   }
   if (document.getElementById("vector-resource").checked) {
-    for (let item of GeoImage.resources[group]){
-      if (GeoImage.Layers[item['geoId']] != null){
-        GeoImage.Layers[item['geoId']].setVisible(true);
+      for (let item of GeoImage.resources[group]){
+          if (GeoImage.Layers[item['geoIdVector']] != null){
+            GeoImage.Layers[item['geoIdVector']].setVisible(true);
+          }
       }
-    }
   }
   // Cambiamos opacidad
   if (document.getElementById("raw-resource").checked && document.getElementById("vector-resource").checked) {
       for (let item of GeoImage.resources[group]){
-        if (GeoImage.Layers[item['geoId']] != null){
-          GeoImage.Layers[item['geoId']].setOpacity(0.5);
+        if (GeoImage.Layers[item['geoIdVector']] != null){
+          GeoImage.Layers[item['geoIdVector']].setOpacity(0.5);
+        }
+        if (GeoImage.Layers[item['geoIdRaw']] != null){
+          GeoImage.Layers[item['geoIdRaw']].setOpacity(0.5);
         }
       }
   }
@@ -215,6 +220,7 @@ GeoImage.init = function (offset, baseURL) {
   GeoImage.baseURL = baseURL || GeoImage.baseURL;
   GeoImage.Layers = {};
   GeoImage.resources = {};
+  GeoImage.color = {};
   GeoImage.resourceClientQueue = ""
   GeoImage.resultClientQueue = ""
   GeoImage.initSlider_status = false;
@@ -252,6 +258,7 @@ GeoImage.init = function (offset, baseURL) {
       let coord = {'latitude':0,'longitude':0};
       coord['latitude'] = co[1];
       coord['longitude'] = co[0];
+      console.log(coord);
       coordConverted.push(coord);
     }
     GeoImage.requestNewMap(coordConverted);
