@@ -1,119 +1,60 @@
-## GEO-DIFF
+# GeoDiff
 
 Sistema distribuido de detección de diferencias sobre superficies terrestres.
 
-### Objetivo
+## Getting Started
 
-Dado un conjunto de imagenes aéreas de una superficie se trata de detectar cambiós sobre la misma.
+A continuación definiremos las instrucciones para poder tener el proyecto corriendo de manera local. Ve a la sección **Instalación**.
 
-Estos 'cambios', los denominaremos **metodos de detección**, entre los cuales definiremos:
+### Prerequisitos
 
-- **Detección de Deforestación.**
-- ~~Detección de Urbanización.~~
-- ~~Detección de Retroceso del nivel del mar.~~
-- ~~Detección de Sequias.~~
+Para poder instalar el proyecto primero es necesario instalar [Docker](https://www.docker.com/).
 
-### Build & Run
+### Instalación
 
-#### MongoDB
+A continuación definiremos los pasos para correr el proyecto.
 
-1. Se debe instalar el motor de BD NoSQL MongoDB, para instalar MongoDB haga click [aquí](https://docs.mongodb.com/manual/installation/)
-
-2. Luego de inicie en MongoDB sobre una terminal:
-```bash
-mongod
+```
+git clone ''
+cd /docker-deploy
+docker-compose --compatibility up
 ```
 
-3. Sobre otra terminal se debe conectarse a la BD:
-```bash
-mongo --port 27017 -u "admin" -p "admin" \
-       --authenticationDatabase "admin"
-```
+Este último comando instalará las dependecias de los contenedores y los correrá. Para mas información de que hay en los contenedores analice la siguiente tabla:
 
-4. A continuación se detallan algunas operaciones a realizar sobre la consola de mongoDB:
+| Aplicación     | Función     |
+| :------------- | :------------- |
+| MongoDB        | Base de Datos no relacional      |
+| Mongo-Express  | Administrador de MondoDB  |
+| RabbitMQ       | Servidor de Mesajeria   |
+| Worker         | Procesar tareas   |
+| Admin-Worker  | Administrador de workers, garantiza que esten activos  |
+| Backend  | Aplicacion principal. Servidor Web Spring Boot  |
 
-##### Crear una BD
+## Probando GeoDiff
 
-Se debe crear una nueva base de datos:
-```bash
-use 'nombre-bd'
-```
+Una vez deployados los containers. Ir a [localhost:8080/geo](localhost:8080/geo) para comenzar a utilizar la aplicación.
 
-##### Crear un usuario para una BD
-
-Se debe crear un nuevo usuario con permisos de *Lectura/Escritura* para una BD:
-```bash
-db.createUser(
-  {
-    user: 'new_user',
-    pwd: 'some_password',
-    roles: [ { role: 'readWrite', db: 'new_database' } ]
-  }
-)
-```
-
-5. Por ultimo se debe crear el archivo `src/main/resources/application.properties`. Utilize como ejemplo el archivo `src/main/resources/application.properties.example` pero **no lo elimine, cree un archivo nuevo**.
-
-### Mockups
-
-#### Home
-
-![Home](/diagrams/GeoDiff-Home.png)
-
-#### Resultados
-
-![Resultados](/diagrams/GeoDiff-Resultados.png)
+## Documentación
 
 ### Arquitectura del Sistema
 
 ![Arquitectura](/diagrams/GeoDiff-DiagramaDeArquitectura.png)
 
-1. Desde el frontEnd se envia las coordenadas del mapa dibujado. (+ Junto con el periodo de fechas que se quiere buscar)
-2. Se solicitian Imagenes a la API ([NASA - Earth](https://api.nasa.gov/))
-3. Se encolan los resultados en la Work Queue.
-4. Los workers consumen de la work queue y aplican el filtro de detección.
-5. Los resultados son encolados en la Result Queue.
-6. El Client lee imagenes del Result Queue y los escribe (7) guarda en un directorio temporal. (TO-DO: Analizar si vale la pena utilizar un BD para almacenar los resultados)
-8. Devuelven los resultados al frontEnd (Se encarga de posicionar los resultados sobre el mapa).
+### ¿Como funciona?
 
-#### Nodos
+A continuación describiremos los pasos que realiza la aplicación para realizar una tarea.
 
-- Master: Nodo encargado de la segmentación y distribución de los conjuntos de imagenes
-- Workers: Nodo encargado de realizar el proceso elegido.
+> En desarrollo...
 
-#### Operatoria
+## Built With
 
-1. El Master segmentará los conjuntos de imagenes en partes iguales y  los enviará a una cola de proceso.
-2. El Worker tomará de la cola de proceso subconjunto de imagenes y aplicará la función/es (metodo de detección) elegida.
-3. El Worker generará una nueva imagen marcando las zonas detectadas con diferentes colores (para cada metodo de detección) y luego la enviará a una cola de resultados.
-4. El Master se encargará de unir las imagenes resultantes.
+* [Spring Boot](https://spring.io/projects/spring-boot) - The web framework used
+* [Maven](https://maven.apache.org/) - Dependency Management
+* [RabbitMQ](https://www.rabbitmq.com/) - Message Broker
+* [OpenLayers](https://openlayers.org/) - Used for Map render
+* [RabbitMQ STOMP Plugin](https://www.rabbitmq.com/stomp.html) - Used to  communicate over WebSockets
 
-#### Herramientas
+## License
 
-##### Procesamiento de Imagenes
-
-Para el proceso de imagenes se eligió **OpenCV**
-
-[Instalar OpenCV para Java](https://opencv-java-tutorials.readthedocs.io/en/latest/01-installing-opencv-for-java.html)
-
-##### Imágenes Satelitales - (Lista de APIs abiertas)
-
-A continuación se listan APIs de imagenes satelitales a investigar/probar.
-
-- [NASA - Earth](https://api.nasa.gov/api.html#earth).
-
-  - Utiliza satelites Landsat.
-  - API con limite de 1000 peticiones por hora.
-
-##### Mapa
-
-**¿Que debe tener la libreria de mapas?**
-
-- Se debe poder posicionar una imagen sobre una latitud (utilizada para mostrar el resultado).
-- Se debe poder dibujar una figura (KML / GeoJSON) sobre el mapa (sobre la cual se obtendran los resultados).
-
-##### Arquitectura
-
-###### RabbitMQ	  
-
-[Instalar RabbitMQ](https://www.rabbitmq.com/download.html)
+This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
