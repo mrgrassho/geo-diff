@@ -69,7 +69,7 @@ public class GeoDiffService {
         this.initQueues();
         this.getResultFromQueue();
     }
-    
+
     public void createMapOptimized(ArrayList<Coordinate> coordinates, Date beginDate, Date endDate, String resourceClientQueue, String resultClientQueue) throws GeoException, ParseException {
         NasaApi nasaApi = new NasaApi(appConfig.configData().API_KEY);
         try {
@@ -146,21 +146,6 @@ public class GeoDiffService {
         logger.info(" - Client Queue declared (results_queue): " + tmp.get("results_queue"));
         logger.info(" - Client Queue declared (resource_queue): " + tmp.get("resource_queue"));
         return tmp;
-    }
-
-    public HashMap<String, String> initClientRequest(ArrayList<Coordinate> coordinates, Date beginDate, Date endDate) throws IOException {
-        HashMap<String, String> clientQueues = this.initClientQueues();
-        Runnable runnable = () -> {
-            try {
-                this.createMapOptimized(coordinates, beginDate, endDate, clientQueues.get("resource_queue"), clientQueues.get("results_queue"));
-            } catch (GeoException | ParseException e) {
-                Thread t = Thread.currentThread();
-                t.getUncaughtExceptionHandler().uncaughtException(t, e);
-            }
-        };
-        Thread thread = new Thread(runnable);
-        thread.start();
-        return clientQueues;
     }
 
     public void initQueues() throws IOException, TimeoutException, NoSuchAlgorithmException, KeyManagementException, URISyntaxException {

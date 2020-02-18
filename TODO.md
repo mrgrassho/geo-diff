@@ -55,7 +55,7 @@
 - [x] Pensar manera de optimizar el proceso. (Que lo workers descarguen las imagenes. Esta opcion es facil de implementar con las librerias httpclient)
 - [ ] Jugar con el tamaño del rectangulo que solicita el cliente. Y realizar una petición de dim = min(longitud del lado del rectangulo).
 - [ ] Ajustar la petición de las imagenes para que ocupe todas las coordenadas del rectangulo. Pedir mas resources para abajo del rectangulo.
-
+- [x] NO abrir una Cola cada vez que el cliente dibuja un rectangulo, reutilizar la misma Cola.
 
 #### Mongo
 - [x] Revisar container que no esta tomando la configuracion de init-mongo.js

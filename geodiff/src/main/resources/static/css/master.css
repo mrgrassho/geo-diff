@@ -108,3 +108,8 @@ a.button:hover {
     display: flex;
     border-top: 2px solid;
 }
+
+.selected-group {
+  background-color: #105bd8;
+  color: white;
+}

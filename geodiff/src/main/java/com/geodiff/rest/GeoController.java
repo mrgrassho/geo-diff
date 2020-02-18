@@ -4,7 +4,6 @@ import com.geodiff.AppConfig;
 import com.geodiff.WebProperties;
 import com.geodiff.dto.Coordinate;
 import com.geodiff.dto.GeoException;
-import com.geodiff.model.GeoImage;
 import com.geodiff.service.GeoDiffService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,26 +48,15 @@ public class GeoController {
     }
 
     /**
-     * Carga un nuevo mapa.
+     * Initializa las colas temporales para los clientes.
      *
-     *  @param    beginDate         FechaDesde >= fecha.
-     *  @param    endDate           FechaHasta <= fecha.
-     *  @param    coordinates       Lista de coordenadas que se quieren procesar.
-     *  @return                     Lista de Imagenes.
+     *  @return                     Nombre de las Colas y parametros para conectarse a RabbitMQ.
      * */
-    @PostMapping("/img-assets")
+    @GetMapping("/init-client-queues")
     @ResponseBody
     @ResponseStatus(HttpStatus.OK)
-    public void newMap(
-            @RequestParam(name = "begin-date", required = false)
-            @DateTimeFormat(pattern = "yyyy-MM-dd") Date beginDate,
-            @RequestParam(name = "end-date", required = false)
-            @DateTimeFormat(pattern = "yyyy-MM-dd") Date endDate,
-            @RequestBody ArrayList<Coordinate> coordinates,
-            @RequestBody String resourceClientQueue,
-            @RequestBody String resultClientQueue) throws IOException, GeoException, ParseException {
-        logger.info(" [+] Request arrived. Coordinates: " + coordinates );
-        geoDiffService.createMapOptimized(coordinates, beginDate, endDate, resourceClientQueue, resultClientQueue);
+    public HashMap<String, String> initClientQueues() throws IOException {
+        return geoDiffService.initClientQueues();
     }
 
     /**
@@ -82,64 +70,15 @@ public class GeoController {
     @PostMapping("/new-map")
     @ResponseBody
     @ResponseStatus(HttpStatus.OK)
-    public HashMap<String, String> createMap(
-            @RequestParam(name = "begin-date", required = false)
+    public void newMap(
+            @RequestParam(name = "begin-date", required = true)
             @DateTimeFormat(pattern = "yyyy-MM-dd") Date beginDate,
-            @RequestParam(name = "end-date", required = false)
+            @RequestParam(name = "end-date", required = true)
             @DateTimeFormat(pattern = "yyyy-MM-dd") Date endDate,
-            @RequestBody ArrayList<Coordinate> coordinates) throws IOException {
+            @RequestParam(name = "resource_queue", required = true) String resourceClientQueue,
+            @RequestParam(name = "results_queue", required = true) String resultClientQueue,
+            @RequestBody ArrayList<Coordinate> coordinates) throws IOException, GeoException, ParseException {
         logger.info(" [+] Request arrived. Coordinates: " + coordinates );
-        return geoDiffService.initClientRequest(coordinates, beginDate, endDate);
-    }
-
-    /**
-     *  Get a Base64 encoded Image.
-     *
-     *  @param    date         Date
-     *  @param    latitude     -
-     *  @param    longitude    -
-     *  @param    filter       Filter applied to the image defined in FilterOption.
-     *  @return
-     * */
-    @GetMapping("/img")
-    @ResponseBody
-    @ResponseStatus(HttpStatus.OK)
-    public String getImage(
-            @RequestParam(name = "date", required = true)
-            @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss") Date date,
-            @RequestParam(name = "lat", required = true) Double latitude,
-            @RequestParam(name = "lon", required = true) Double longitude,
-            @RequestParam(name = "filter", required = true) String filter ) throws GeoException
-    {
-        GeoImage gi = geoDiffService.findGeoImage(latitude, longitude, date, filter);
-        if (gi != null) {
-            return gi.getEarthImage().getRawImage();
-        } else {
-            return "";
-        }
-    }
-
-    /**
-     *  Get a Vector of Image with filter applied.
-     *
-     *  @param    id           Date
-     *  @return                GeoImage result.
-     * */
-    @GetMapping("/vector")
-    @ResponseBody
-    @ResponseStatus(HttpStatus.OK)
-    public String getVector(
-            @RequestParam(name = "date", required = true)
-            @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss") Date date,
-            @RequestParam(name = "lat", required = true) Double latitude,
-            @RequestParam(name = "lon", required = true) Double longitude,
-            @RequestParam(name = "filter", required = true) String filter )  throws GeoException
-    {
-        GeoImage gi = geoDiffService.findGeoImage(latitude, longitude, date, filter);
-        if (gi != null) {
-            return gi.getVectorImage();
-        } else {
-            return "";
-        }
+        geoDiffService.createMapOptimized(coordinates, beginDate, endDate, resourceClientQueue, resultClientQueue);
     }
 }

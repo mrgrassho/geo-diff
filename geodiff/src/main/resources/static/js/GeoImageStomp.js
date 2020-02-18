@@ -25,20 +25,19 @@ GeoImage.buildNewMapURL = function (beginDate, endDate) {
   endDate = endDate == null ? '': endDate;
   return GeoImage.baseURL + "/new-map?" +
                "begin-date=" + beginDate + "&" +
-               "end-date=" + endDate;
+               "end-date=" + endDate + "&"+
+               "resource_queue=" + GeoImage.resourceClientQueue + "&" +
+               "results_queue=" + GeoImage.resultClientQueue + "&";
 }
 
-GeoImage.requestNewMap = function (coords) {
-  // LLAMADA AJAX PARA LA IMAGEN;
-  let beginDate = document.getElementById('begin-date').value;
-  let endDate = document.getElementById('end-date').value;
-  let url = GeoImage.buildNewMapURL(beginDate, endDate);
-  Ajax.request( "POST", url, coords, function (xhr) {
+GeoImage.initClient = function () {
+  // LLAMADA AJAX PARA INICIALIZAR QUEUES
+  let url = GeoImage.baseURL + "/init-client-queues";
+  Ajax.request( "GET", url, {}, function (xhr) {
   // LLEGA EL RECURSO Y SE AGREGA LA CAPA.
     var obj = JSON.parse(xhr);
-    console.log('Fucking Object :', obj)
     if (xhr === "{}") {
-        console.log("[!] Request Object are NOT available. Request: " + url + " Body: " + JSON.stringify(coords));
+        console.log("[!] Request Object are NOT available. Request: " + url);
     } else {
         GeoImage.resourceClientQueue = obj['resource_queue']
         GeoImage.resultClientQueue = obj['results_queue']
@@ -48,6 +47,15 @@ GeoImage.requestNewMap = function (coords) {
         GeoImage.initRabbitMQ()
     }
   });
+}
+
+
+GeoImage.requestNewMap = function (coords) {
+  // LLAMADA AJAX PARA LA IMAGEN;
+  let beginDate = document.getElementById('begin-date').value;
+  let endDate = document.getElementById('end-date').value;
+  let url = GeoImage.buildNewMapURL(beginDate, endDate);
+  Ajax.request("POST", url, coords, null);
 }
 
 GeoImage.getDateGroup =  function(date_str) {
@@ -70,21 +78,26 @@ GeoImage.onResourceMessage = function(d) {
 }
 
 GeoImage.intersecPolygons = function (pol1, pol2) {
-  var polygonInit = turf.polygon(pol1);
-  var poligons = turf.multiPolygon(pol2).geometry.coordinates.map(c => turf.polygon(c));
-  var res = polygonInit;
+  var res = turf.polygon(pol1);
+  var multi = turf.multiPolygon(pol2);
+  var poligons = multi.geometry.coordinates.map(c => turf.polygon(c));
   for (var p of poligons) {
-    let tmp = turf.intersect(res, p)
-    res = (tmp != null) ? tmp : res;
+    try {
+        let tmp = turf.intersect(res, p);
+        res = (tmp != null) ? tmp : res;
+    }  catch(error) {
+      console.log(error);
+      return multi;
+    }
   }
-  console.log(res);
   return res;
 }
 
 GeoImage.resultVector = function(item) {
   let geoIdVector = GeoImage.getHashCode(item, "VECTOR");
   let group = GeoImage.getDateGroup(item["earthImage"]["date"]);
-  let multiPolygon = GeoImage.intersecPolygons(GeoImage.feature.getGeometry().getCoordinates(), (new GeoJSON()).readFeatures(item["vectorImage"])[0].getGeometry().getCoordinates());
+  //let multiPolygon = GeoImage.intersecPolygons(GeoImage.feature.getGeometry().getCoordinates(), (new GeoJSON()).readFeatures(item["vectorImage"])[0].getGeometry().getCoordinates());
+  let multiPolygon = item["vectorImage"];
   GeoImage.Layers[geoIdVector] = new VectorLayer({
     source: new VectorSource({
       features: (new GeoJSON()).readFeatures(multiPolygon)
@@ -121,10 +134,13 @@ GeoImage.onResultMessage = function(d) {
   let geoImage = JSON.parse(d.body);
   let group = GeoImage.getDateGroup(geoImage["earthImage"]["date"]);
   console.log(" [+] Resource available. GeoImage:" + geoImage);
+  if (Object.entries(GeoImage.Layers).length === 0 && GeoImage.Layers.constructor === Object) {
+    GeoImage.selectedGroup = group;
+  }
   GeoImage.resultVector(geoImage);
   GeoImage.resultImage(geoImage);
   if (group == GeoImage.selectedGroup) {
-    //GeoImage.loadMapCentralized(group)
+    GeoImage.loadMapCentralized(group)
   }
 }
 
@@ -185,33 +201,46 @@ GeoImage.addElementToSlider = function(groupDate) {
     a.setAttribute('onclick', 'GeoImage.loadMapCentralized(\"'+groupDate+'\");')
     a.classList.add('pop-up');
     li.appendChild(a);
-    list.appendChild(li);
+    let elem = null
+    for (let child of list.childNodes) {
+      if (child.getElementsByTagName('A')[0].id.localeCompare(a.id) < 0) {
+        elem = child;
+      } else {
+        break;
+      }
+    }
+    list.insertBefore(li, elem);
   }
 }
 
 GeoImage.loadMapCentralized = function (group) {
-  GeoImage.selectedGroup = group;
+  let OldGroup = document.getElementById(GeoImage.selectedGroup);
+  if (OldGroup != null) OldGroup.classList.remove('selected-group');
+  GeoImage.selectedGroup = group || GeoImage.selectedGroup;
+  let NewGroup = document.getElementById(GeoImage.selectedGroup);
+  NewGroup.classList.add('selected-group');
   for (var layers of Object.values(GeoImage.Layers)){
        layers.setVisible(false);
        layers.setOpacity(1);
   }
   if (document.getElementById("raw-resource").checked) {
-      for (let item of GeoImage.resources[group]){
+      for (let item of GeoImage.resources[GeoImage.selectedGroup]){
           if (GeoImage.Layers[item['geoIdRaw']] != null){
             GeoImage.Layers[item['geoIdRaw']].setVisible(true);
           }
       }
   }
   if (document.getElementById("vector-resource").checked) {
-      for (let item of GeoImage.resources[group]){
+      for (let item of GeoImage.resources[GeoImage.selectedGroup]){
           if (GeoImage.Layers[item['geoIdVector']] != null){
             GeoImage.Layers[item['geoIdVector']].setVisible(true);
+            GeoImage.Layers[item['geoIdVector']].setOpacity(0.7);
           }
       }
   }
   // Cambiamos opacidad
   if (document.getElementById("raw-resource").checked && document.getElementById("vector-resource").checked) {
-      for (let item of GeoImage.resources[group]){
+      for (let item of GeoImage.resources[GeoImage.selectedGroup]){
         if (GeoImage.Layers[item['geoIdVector']] != null){
           GeoImage.Layers[item['geoIdVector']].setOpacity(0.5);
         }
@@ -223,13 +252,8 @@ GeoImage.loadMapCentralized = function (group) {
   GeoImage.Map.getLayers().forEach(layer => layer.getSource().refresh());
 }
 
-GeoImage.init = function (offset, baseURL) {
-  var raster = new TileLayer({
-    source: new OSM()
-  });
+GeoImage.init = function (baseURL) {
 
-  GeoImage.offset  = offset || GeoImage.offset;
-  GeoImage.offset = GeoImage.offset / 2;
   GeoImage.baseURL = baseURL || GeoImage.baseURL;
   GeoImage.Layers = {};
   GeoImage.resources = {};
@@ -238,6 +262,11 @@ GeoImage.init = function (offset, baseURL) {
   GeoImage.resultClientQueue = ""
   GeoImage.initSlider_status = false;
   console.log("Setting baseURL to " + GeoImage.baseURL);
+  GeoImage.initClient();
+
+  var raster = new TileLayer({
+    source: new OSM()
+  });
 
   var source = new VectorSource({wrapX: false});
 
@@ -268,7 +297,7 @@ GeoImage.init = function (offset, baseURL) {
     );
     GeoImage.feature.getGeometry().setCoordinates([newCoords]);
     let coordConverted = newCoords.map( function(co) {
-        return {'latitude': co[1],'longitude': co[0]};
+        return {'latitude': co[1], 'longitude': co[0]};
     });
     GeoImage.requestNewMap(coordConverted);
   });
@@ -276,7 +305,7 @@ GeoImage.init = function (offset, baseURL) {
   GeoImage.View = new View({
     projection: 'EPSG:4326',
     center: [80.5, 8.2],
-    zoom: 9
+    zoom: 11
   });
 
   GeoImage.Map = new Map({
@@ -308,7 +337,6 @@ GeoImage.init = function (offset, baseURL) {
     }
   }
 
-
   /**
    * Handle change event.
    */
@@ -318,4 +346,12 @@ GeoImage.init = function (offset, baseURL) {
   };
 
   addInteraction();
+
+  var checkboxes = document.querySelectorAll("input[type=checkbox]");
+
+  for (var checkbox of checkboxes) {
+    checkbox.addEventListener('change', function() {
+        GeoImage.loadMapCentralized();
+    });
+  }
 }
