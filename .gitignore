@@ -9,3 +9,4 @@ target/
 application.properties
 /**/__pycache__/
 /**/docker-compose.yml
+/**/venv/
