@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 from datetime import datetime,date, time, timedelta
-import calendar
 import pika
 import docker
 import random
 import threading
 import pandas
+import json
 
 # Constants
 max_timeout = '00:10:00'  # 10 segundos
@@ -18,8 +18,9 @@ host = "localhost"
 """ Procedures -------------------------------------------------------------------------------- """
 
 def callback_keep_alive_queue(ch, method, properties, body):
-    # el mensaje tiene que tener un atributo TIME, solo lo guardo en el array. Si no existe el container, lo creo.
-    nombre = "worker" + str(random.uniform(0, 1))
+    data = json.loads(body)
+    # if last_timestamps.get(data['id'], 'none') == 'none':  # si nunca recibio mensajes de ese container, lo agrega.
+    last_timestamps[data['id']] = data['timestamp']
 
 
 def calculate_timeout_workers():
@@ -35,7 +36,7 @@ def calculate_timeout_workers():
                 container.stop()
                 name_worker = prox_worker()
                 new_container = client.containers.run(image, name=name_worker, tty=True, detach=True, stdin_open=True)
-                last_timestamps[new_container.attrs['id']] = str(datetime.now())  # actualizo lista de containers.
+                # last_timestamps[new_container.attrs['id']] = str(datetime.now())  # actualizo lista de containers.
 
 
 def prox_worker():
