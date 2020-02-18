@@ -23,7 +23,7 @@ spring.data.rabbitmq.res_xchg=RESULT_XCHG
 # spring.data.nasa.api_token=eRnhp89rKUAfdMBFudSIS7RyvtVabc7i1h5wVz3J
 # spring.data.nasa.api_token=DEMO_KEY
 spring.data.nasa.cloudscore_max=0.3
-spring.data.nasa.dimension=0.025
+spring.data.nasa.dimension=0.4
 
 # Server Config
 server.port=8097
