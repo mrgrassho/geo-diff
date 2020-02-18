@@ -55,7 +55,9 @@ GeoImage.requestNewMap = function (coords) {
   let beginDate = document.getElementById('begin-date').value;
   let endDate = document.getElementById('end-date').value;
   let url = GeoImage.buildNewMapURL(beginDate, endDate);
-  Ajax.request("POST", url, coords, null);
+  Ajax.request("POST", url, coords, function (xhr) {
+    console.log(xhr);
+  });
 }
 
 GeoImage.getDateGroup =  function(date_str) {

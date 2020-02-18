@@ -222,11 +222,7 @@ public class GeoDiffService {
     }
 
     public double getNearPoint(double x, double y){
-        if ((x * 1000) % (y * 1000) == 0) {
-            return (double) ((int) ((x * 1000) / (y * 1000)) * (y * 1000) ) / 1000;
-        } else {
-            return (double) ((int) ((x * 1000) / (y * 1000)) * (y * 1000) + (y * 1000)) / 1000;
-        }
+        return (double) ((int) ((x * 1000) / (y * 1000)) * (y * 1000) ) / 1000;
     }
 
     /**
