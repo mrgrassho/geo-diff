@@ -1,6 +1,6 @@
 
 #Mongo Config
-spring.data.mongodb.host=localhost
+spring.data.mongodb.host=mongo-server
 spring.data.mongodb.port=27017
 spring.data.mongodb.database=geo-mongo
 spring.data.mongodb.repositories.enabled=true
@@ -9,15 +9,16 @@ spring.data.mongodb.password=admin
 spring.data.mongobee.changelogs=com.geodiff.changelogs
 
 # RabbitMQ Config
-spring.data.rabbitmq.amqp_uri=amqp://guest:guest@localhost:5672/%2f
+spring.data.rabbitmq.amqp_uri=amqp://guest:guest@rabbitmq-server:5672/%2f
 spring.data.rabbitmq.res_queue=RESULT_QUEUE
 spring.data.rabbitmq.task_queue=TASK_QUEUE
 spring.data.rabbitmq.res_xchg=RESULT_XCHG
+spring.data.rabbitmq.keep_alive_queue=KEEP_ALIVE
 
 # Nasa API
 spring.data.nasa.api_token=6k9ilibCQcusmZl9RRczizWjFC7K0gkviEt2G4Qa
-#spring.data.nasa.api_token=eRnhp89rKUAfdMBFudSIS7RyvtVabc7i1h5wVz3J
-#spring.data.nasa.api_token=DEMO_KEY
+# spring.data.nasa.api_token=eRnhp89rKUAfdMBFudSIS7RyvtVabc7i1h5wVz3J
+# spring.data.nasa.api_token=DEMO_KEY
 spring.data.nasa.cloudscore_max=0.3
 spring.data.nasa.dimension=0.025
 

@@ -1,6 +1,6 @@
 # GeoDiff
 
-Sistema distribuido de detección de diferencias sobre superficies terrestres.
+Sistema de detección de diferencias sobre superficies terrestres.
 
 ## Getting Started
 
@@ -41,7 +41,7 @@ Este último comando instalará las dependecias de los contenedores y los correr
 | MongoDB        | Base de Datos no relacional      |
 | Mongo-Express  | Administrador de MondoDB  |
 | RabbitMQ       | Servidor de Mesajeria   |
-| Worker         | Procesar tareas   |
+| Worker         | Procesador de tareas   |
 | Admin-Worker  | Administrador de workers, garantiza que esten activos  |
 | Backend  | Aplicacion principal. Servidor Web Spring Boot  |
 
