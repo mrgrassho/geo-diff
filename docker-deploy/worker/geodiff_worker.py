@@ -56,8 +56,8 @@ class GeoDiffWorker(object):
             print(" [x] Applying {} filter to Image".format(filter))
         if (filter == 'DEFORESTATION'):
             # Filtra gama de verdes
-            lower_hsv = np.array([40, 55, 40])
-            upper_hsv = np.array([60, 220, 220])
+            lower_hsv = self.normalize_HSV(np.array([90,0,0]))
+            upper_hsv = self.normalize_HSV(np.array([150,100,100]))
         elif (filter == 'DROUGHT'):
             # Filtra gama de amarrillos / rojizos
             lower_hsv = self.normalize_HSV(np.array([40,46,54]))
@@ -72,14 +72,14 @@ class GeoDiffWorker(object):
             upper_hsv = self.normalize_HSV(np.array([360,0,100]))
         img = self.data_uri_to_cv2_img(image)
         # blurredImage = cv2.blur(img,(2,2))
-        # import pdb; pdb.set_trace()
         hsv = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
-        mask = cv2.inRange(hsv, lower_hsv, upper_hsv);
+        mask = cv2.inRange(hsv, lower_hsv, upper_hsv)
+        res = cv2.bitwise_and(img,img, mask= mask)
         # cv2.imwrite("tsti.png", img)
         # cv2.imwrite("tsti.png", img)
         if (self._debug):
             print(" [x] Filter applied.")
-        return mask
+        return res
 
 
     def normalize_HSV(self, ndarr):
@@ -90,12 +90,42 @@ class GeoDiffWorker(object):
         hue = 0 if (ndarr[0] == 0) else self.OPENCV_MAX_HUE / (self.GOOGLE_MAX_HUE / ndarr[0])
         sat = 0 if (ndarr[1] == 0) else self.OPENCV_MAX_SAT / (self.GOOGLE_MAX_SAT / ndarr[1])
         val = 0 if (ndarr[2] == 0) else self.OPENCV_MAX_VAL / (self.GOOGLE_MAX_VAL / ndarr[2])
-        import pdb; pdb.set_trace()
         return np.array([hue, sat, val])
 
 
     def id_generator(self, size=28, chars=string.ascii_uppercase + string.digits):
         return ''.join(random.choice(chars) for _ in range(size))
+
+
+    def erase_clouds(self, img):
+        """Replace white spots (clouds) with the colors around."""
+        rows, cols, _ = img.shape
+        last_color = [0,0]
+        for i in range(rows):
+            for j in range(cols):
+                if (img[i,j] > [55, 55, 55]).all():
+                    x = last_color[0]+random.randrange(-10,10)
+                    y = last_color[1]+random.randrange(-10,10)
+                    if (x >= rows): x = rows-1
+                    if (y >= cols): y = cols-1
+                    img[i,j] = img[ x, y ]
+                else:
+                    last_color = [i, j]
+        return img
+
+
+    def apply_kmeans(self, _K, img):
+        Z = img.reshape((-1,3))
+        Z = np.float32(Z)
+        criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
+        K = _K
+        ret,label,center = cv2.kmeans(Z,K,None,criteria,10,cv2.KMEANS_RANDOM_CENTERS)
+        center = np.uint8(center)
+        res = center[label.flatten()]
+        res = res.reshape((img.shape))
+        retval, buffer = cv2.imencode('.jpg', res)
+        data_encode = np.array(buffer)
+        return "data:image/png;base64," + base64.b64encode(buffer).decode("utf-8", "ignore")
 
 
     def pngToGeoJson(self, image_data, tmp=""):
@@ -109,7 +139,7 @@ class GeoDiffWorker(object):
         if (self._debug):
             print(" [x] --> Bitmap ready.")
             print(" [x] Converting bitmap to vector (geoJson)...")
-        bashCommand = "./potrace -b geojson "+inputTmpBMP+" -o "+outputTmp
+        bashCommand = "./potrace -b geojson -i "+inputTmpBMP+" -o "+outputTmp
         subprocess.check_output(['bash','-c', bashCommand])
         data = geopandas.read_file(outputTmp)
         if (self._debug):
@@ -208,8 +238,9 @@ class GeoDiffWorker(object):
             data['earthImage']['rawImage'] = self.download_img(data['earthImage']['url'])
 
         filteredImage = self.applyFilter(data['earthImage']['rawImage'])
-        geoOutput = self.pngToGeoJson(filteredImage)
-        data['vectorImage'] = self.scale(geoOutput, data['earthImage']['dim'], Point(data['earthImage']['coordinate']['longitude'] , data['earthImage']['coordinate']['latitude']) )
+        #geoOutput = self.pngToGeoJson(filteredImage)
+        filteredImage = self.erase_clouds(filteredImage)
+        data['vectorImage'] = self.apply_kmeans(8, filteredImage)
         if (self._debug):
             print(" [x] Job done! Image processing took {} seconds.".format(time.time() - start_time))
         self._channel.basic_ack(delivery_tag=delivery.delivery_tag)

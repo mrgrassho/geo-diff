@@ -95,25 +95,41 @@ GeoImage.intersecPolygons = function (pol1, pol2) {
   return res;
 }
 
+//GeoImage.resultVector = function(item) {
+//  let geoIdVector = GeoImage.getHashCode(item, "VECTOR");
+//  let group = GeoImage.getDateGroup(item["earthImage"]["date"]);
+//  //let multiPolygon = GeoImage.intersecPolygons(GeoImage.feature.getGeometry().getCoordinates(), (new GeoJSON()).readFeatures(item["vectorImage"])[0].getGeometry().getCoordinates());
+//  let multiPolygon = item["vectorImage"];
+//  GeoImage.Layers[geoIdVector] = new VectorLayer({
+//    source: new VectorSource({
+//      features: (new GeoJSON()).readFeatures(multiPolygon)
+//    }),
+//     style: function(feature) {
+//       let style = GeoImage.style.clone();
+//       style.setFill( new Fill({
+//          color: GeoImage.color[group]
+//       }));
+//       return style;
+//     }
+//  });
+//  GeoImage.Map.addLayer(GeoImage.Layers[geoIdVector]);
+//  GeoImage.Layers[geoIdVector].setVisible(false);
+//}
+
 GeoImage.resultVector = function(item) {
-  let geoIdVector = GeoImage.getHashCode(item, "VECTOR");
-  let group = GeoImage.getDateGroup(item["earthImage"]["date"]);
-  //let multiPolygon = GeoImage.intersecPolygons(GeoImage.feature.getGeometry().getCoordinates(), (new GeoJSON()).readFeatures(item["vectorImage"])[0].getGeometry().getCoordinates());
-  let multiPolygon = item["vectorImage"];
-  GeoImage.Layers[geoIdVector] = new VectorLayer({
-    source: new VectorSource({
-      features: (new GeoJSON()).readFeatures(multiPolygon)
-    }),
-     style: function(feature) {
-       let style = GeoImage.style.clone();
-       style.setFill( new Fill({
-          color: GeoImage.color[group]
-       }));
-       return style;
-     }
+  let offset = item["earthImage"]["dim"] / 2;
+  let minLatLon = [item["earthImage"]["coordinate"]['longitude']-offset, item["earthImage"]["coordinate"]['latitude']-offset];
+  let maxLatLon = [item["earthImage"]["coordinate"]['longitude']+offset, item["earthImage"]["coordinate"]['latitude']+offset];
+  let geoIdRaw = GeoImage.getHashCode(item, "VECTOR");
+  GeoImage.Layers[geoIdRaw] = new ImageLayer({
+    source: new Static({
+      imageLoadFunction : function(image){ image.getImage().src = item["vectorImage"]; },
+      crossOrigin: '',
+      imageExtent: [minLatLon[0], minLatLon[1], maxLatLon[0], maxLatLon[1]]
+    })
   });
-  GeoImage.Map.addLayer(GeoImage.Layers[geoIdVector]);
-  GeoImage.Layers[geoIdVector].setVisible(false);
+  GeoImage.Map.addLayer(GeoImage.Layers[geoIdRaw]);
+  GeoImage.Layers[geoIdRaw].setVisible(false);
 }
 
 GeoImage.resultImage = function(item) {
