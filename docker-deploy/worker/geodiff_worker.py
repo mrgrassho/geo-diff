@@ -83,7 +83,7 @@ class GeoDiffWorker(object):
         # cv2.imwrite("tsti.png", img)
         # cv2.imwrite("tsti.png", img)
         if (self._debug):
-            print(" [x] Filter applied.")a in hsv
+            print(" [x] Filter applied.") in hsv
 
         return res
 
