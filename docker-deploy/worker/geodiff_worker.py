@@ -51,7 +51,6 @@ class GeoDiffWorker(object):
         :param image: Filter to apply.
         :type image: :class:`string`
         """
-        #import pdb; pdb.set_trace()
         if (self._debug):
             print(" [x] Applying {} filter to Image".format(filter))
         if (filter == 'DEFORESTATION'):
@@ -97,22 +96,44 @@ class GeoDiffWorker(object):
         return ''.join(random.choice(chars) for _ in range(size))
 
 
+    def paint_square(self, img, k, cols, rows, elem, i, j):
+        for ii in range(i-k,i+k):
+            for jj in range(j-k,j+k):
+                if (ii < rows and jj < cols):
+                    img[ii, jj] = elem
+        return img
+
+
     def erase_clouds(self, img):
         """Replace white spots (clouds) with the colors around."""
         rows, cols, _ = img.shape
-        last_color = [0,0]
-        for i in range(rows):
-            for j in range(cols):
+        last_color = [random.randrange(rows), random.randrange(cols)]
+        step = 2
+        for i in range(0, rows, step):
+            for j in range(0, cols, step):
                 if (img[i,j] > [55, 55, 55]).all():
-                    x = last_color[0]+random.randrange(-10,10)
-                    y = last_color[1]+random.randrange(-10,10)
+                    x = last_color[0]
+                    y = last_color[1]
+                    elem = img[x, y]
                     if (x >= rows): x = rows-1
                     if (y >= cols): y = cols-1
-                    img[i,j] = img[ x, y ]
+                    img = self.paint_square(img, step, cols, rows, elem, i, j)
                 else:
                     last_color = [i, j]
         return img
 
+
+    def set_transparent_background(self, img):
+        h, s, alpha = cv2.split(img)
+        for i in range(alpha.shape[0]):
+            for j in range(alpha.shape[1]):
+                if (alpha[i, j] != 0):
+                    alpha[i, j] = 1000
+        return cv2.merge((img, alpha))
+
+    def img_to_base64(self, res):
+        retval, buffer = cv2.imencode('.png', res)
+        return "data:image/png;base64," + base64.b64encode(buffer).decode("utf-8", "ignore")
 
     def apply_kmeans(self, _K, img):
         Z = img.reshape((-1,3))
@@ -123,10 +144,7 @@ class GeoDiffWorker(object):
         center = np.uint8(center)
         res = center[label.flatten()]
         res = res.reshape((img.shape))
-        retval, buffer = cv2.imencode('.jpg', res)
-        data_encode = np.array(buffer)
-        return "data:image/png;base64," + base64.b64encode(buffer).decode("utf-8", "ignore")
-
+        return res
 
     def pngToGeoJson(self, image_data, tmp=""):
         """Transform png to GeoJson vector."""
@@ -240,7 +258,9 @@ class GeoDiffWorker(object):
         filteredImage = self.applyFilter(data['earthImage']['rawImage'])
         #geoOutput = self.pngToGeoJson(filteredImage)
         filteredImage = self.erase_clouds(filteredImage)
-        data['vectorImage'] = self.apply_kmeans(8, filteredImage)
+        filteredImage = self.apply_kmeans(8, filteredImage)
+        filteredImage = self.set_transparent_background(filteredImage)
+        data['vectorImage'] = self.img_to_base64(filteredImage)
         if (self._debug):
             print(" [x] Job done! Image processing took {} seconds.".format(time.time() - start_time))
         self._channel.basic_ack(delivery_tag=delivery.delivery_tag)
