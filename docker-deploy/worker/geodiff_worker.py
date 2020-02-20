@@ -55,16 +55,22 @@ class GeoDiffWorker(object):
             print(" [x] Applying {} filter to Image".format(filter))
         if (filter == 'DEFORESTATION'):
             # Filtra gama de verdes
-            lower_hsv = self.normalize_HSV(np.array([90,0,0]))
-            upper_hsv = self.normalize_HSV(np.array([150,100,100]))
+            #lower_hsv = self.normalize_HSV(np.array([90,0,0]))
+            #upper_hsv = self.normalize_HSV(np.array([150,100,100]))
+            lower_hsv = np.array([36, 0, 0])
+            upper_hsv = np.array([86, 255, 255])
         elif (filter == 'DROUGHT'):
             # Filtra gama de amarrillos / rojizos
-            lower_hsv = self.normalize_HSV(np.array([40,46,54]))
-            upper_hsv = self.normalize_HSV(np.array([65,100,100]))
+            #lower_hsv = self.normalize_HSV(np.array([40,46,54]))
+            #upper_hsv = self.normalize_HSV(np.array([65,100,100]))
+            lower_hsv = np.array([80, 0, 0])
+            upper_hsv = np.array([135, 255, 255])
         elif (filter == 'FLOODING'):
             # Filtra gama de azules / celestes
-            lower_hsv = self.normalize_HSV(np.array([183,41,51]))
-            upper_hsv = self.normalize_HSV(np.array([254,100,100]))
+            #lower_hsv = self.normalize_HSV(np.array([183,41,51]))
+            #upper_hsv = self.normalize_HSV(np.array([254,100,100]))
+            lower_hsv = np.array([0, 100, 20])
+            upper_hsv = np.array([23, 255, 255])
         else:
             # Filtra gama del blanco al negro
             lower_hsv = self.normalize_HSV(np.array([0,40,100]))
@@ -77,7 +83,8 @@ class GeoDiffWorker(object):
         # cv2.imwrite("tsti.png", img)
         # cv2.imwrite("tsti.png", img)
         if (self._debug):
-            print(" [x] Filter applied.")
+            print(" [x] Filter applied.")a in hsv
+
         return res
 
 
