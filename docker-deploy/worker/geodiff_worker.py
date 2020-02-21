@@ -1,22 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import geopandas
-from shapely.geometry.multipolygon import MultiPolygon
-from shapely.geometry.point import Point
 import pika
 import json
-import sys
 import time
 import cv2
 import numpy as np
 import base64
-import subprocess
-from PIL import Image
 import string
 import random
 import functools
-import math
 import http.client
 import mimetypes
 from datetime import datetime
@@ -85,7 +78,7 @@ class GeoDiffWorker(object):
         # cv2.imwrite("tsti.png", img)
         # cv2.imwrite("tsti.png", img)
         if (self._debug):
-            print(" [x] Filter applied.") in hsv
+            print(" [x] Filter applied in hsv.")
 
         return res
 
@@ -133,12 +126,11 @@ class GeoDiffWorker(object):
 
 
     def set_transparent_background(self, img):
-        h, s, alpha = cv2.split(img)
-        for i in range(alpha.shape[0]):
-            for j in range(alpha.shape[1]):
-                if (alpha[i, j] != 0):
-                    alpha[i, j] = 1000
+        """Sets Alpha Channel from black to transparent."""
+        *_, alpha = cv2.split(img)
+        alpha[np.where(alpha != 0)] = 1000
         return cv2.merge((img, alpha))
+
 
     def img_to_base64(self, res):
         retval, buffer = cv2.imencode('.png', res)
@@ -155,25 +147,6 @@ class GeoDiffWorker(object):
         res = res.reshape((img.shape))
         return res
 
-    def pngToGeoJson(self, image_data, tmp=""):
-        """Transform png to GeoJson vector."""
-        if (self._debug):
-            print(" [x] Converting png to bitmap...")
-        tmp = self.id_generator()
-        inputTmpBMP = tmp+".bmp"
-        outputTmp = tmp+".geojson"
-        cv2.imwrite(inputTmpBMP, image_data)
-        if (self._debug):
-            print(" [x] --> Bitmap ready.")
-            print(" [x] Converting bitmap to vector (geoJson)...")
-        bashCommand = "./potrace -b geojson -i "+inputTmpBMP+" -o "+outputTmp
-        subprocess.check_output(['bash','-c', bashCommand])
-        data = geopandas.read_file(outputTmp)
-        if (self._debug):
-            print(" [x] --> geoJson ready.")
-        subprocess.check_output(['bash','-c', "rm -rf "+inputTmpBMP+" "+outputTmp])
-        return data
-
     def download_img(self, url):
         if (self._debug):
             print(" [x] Downloading Image...")
@@ -189,35 +162,6 @@ class GeoDiffWorker(object):
         if (data == ''):
             raise Exception("Empty Response.")
         return "data:image/png;base64," + base64.b64encode(data).decode("utf-8", "ignore")
-
-
-    def scale(self, polygons, scale_x, center=Point([0,0])):
-        """
-        Scale and center polygons, finally write a resulting Geojson file.
-
-        :param polygons: Polygons Series.
-        :type polygons: :class:`geopandas.GeoSeries`
-
-        :param scale_x: Degrees to scale the Polygons.
-        :type scale_x: :class:`float`
-
-        :param center: Coordinates Point([lon, lat]) to center polygons.
-        :type center: :class:`shapely.geometry.Point`
-        """
-        if (self._debug):
-            print(" [x] Scaling and joining polygons MultiPolygon...")
-        m = MultiPolygon([polygons.loc[i].geometry for i in range(polygons.size)])
-        g = geopandas.GeoSeries([m])
-        # a = g.area[0]
-        a = 262144 # Usamos area hardcodeada - 262144
-        scale_factor = math.sqrt((scale_x**2) / a)
-        g = g.scale(scale_factor, scale_factor)
-        x = g.centroid.x[0] - center.x if (g.centroid.x[0] < center.x) else center.x - g.centroid.x[0]
-        y = g.centroid.y[0] - center.y if (g.centroid.y[0] < center.y) else center.y - g.centroid.y[0]
-        g = g.translate(xoff = x, yoff = y)
-        if (self._debug):
-            print(" [x] MultiPolygon scaled with scale_factor: {} - Result MultiPolygon Area: {}".format(scale_factor, a))
-        return g.to_json()
 
 
     def data_uri_to_cv2_img(self, uri):
@@ -282,11 +226,22 @@ class GeoDiffWorker(object):
         if (not 'rawImage' in data['earthImage']):
             data['earthImage']['rawImage'] = self.download_img(data['earthImage']['url'])
 
+        process_time = time.time()
         filteredImage = self.applyFilter(data['earthImage']['rawImage'])
         #geoOutput = self.pngToGeoJson(filteredImage)
+        if (self._debug):
+            print(" [+] Filter applied! Process took {} seconds.".format(time.time() - process_time))
+        process_time = time.time()
         filteredImage = self.erase_clouds(filteredImage)
+        if (self._debug):
+            print(" [+] Erase Clouds done! Process took {} seconds.".format(time.time() - process_time))
+        process_time = time.time()
         filteredImage = self.apply_kmeans(8, filteredImage)
+        if (self._debug):
+            print(" [+] Apply KMeans done! Process took {} seconds.".format(time.time() - process_time))
         filteredImage = self.set_transparent_background(filteredImage)
+        if (self._debug):
+            print(" [+] Set Background done! Process took {} seconds.".format(time.time() - process_time))
         data['vectorImage'] = self.img_to_base64(filteredImage)
         if (self._debug):
             print(" [x] Job done! Image processing took {} seconds.".format(time.time() - start_time))
