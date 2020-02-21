@@ -32,6 +32,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeoutException;
 
 @Service
@@ -53,7 +55,7 @@ public class GeoDiffService {
     private static final String NUMBER = "0123456789";
     private static final String DATA_FOR_RANDOM_STRING = CHAR_LOWER + CHAR_UPPER + NUMBER;
     private static SecureRandom random = new SecureRandom();
-
+    private ExecutorService pool = Executors.newFixedThreadPool(10000);
 
     @Autowired
     private GeoImageRepository geoImageRepository;
@@ -72,51 +74,62 @@ public class GeoDiffService {
 
     public void createMapOptimized(ArrayList<Coordinate> coordinates, Date beginDate, Date endDate, String resourceClientQueue, String resultClientQueue) throws GeoException, ParseException {
         NasaApi nasaApi = new NasaApi(appConfig.configData().API_KEY);
-        try {
-            String beginDateStr = (beginDate != null) ? df.format(beginDate): null;
-            String endDateStr = (endDate != null) ? df.format(endDate): null;
-            coordinates = transformBoxToList(coordinates);
-            logger.info(" - Process Order Arrived - Quantity: " + coordinates.size() + ", BeginDate: " + beginDateStr + ", EndDate:  " + endDateStr);
-            for (Coordinate coord : coordinates) {
-                EarthAssets eas = nasaApi.getEarthAssets(coord.getLatitude(), coord.getLongitude(), beginDateStr, endDateStr);
-                if (eas.getCount() > 0) {
-                    eas.setCoordinate(coord);
-                    for (int i = 0; i < eas.getCount(); i++) {
-                        EarthAssets.EarthAsset ea = eas.getResults().get(i);
-                        try {
-                            GeoImage gi = new GeoImage();;
-                            if (null == (gi = this.findGeoImage(
-                                    eas.getCoordinate().getLatitude(),
-                                    eas.getCoordinate().getLongitude(),
-                                    timestamp.parse(ea.getDate()),
-                                    "RAW"))) {
-                                EarthImage e = nasaApi.getEarthImage(eas.getCoordinate().getLatitude(), eas.getCoordinate().getLongitude(), appConfig.configData().DIMENSION, ea.getDate().split("T")[0], CLOUDSCORE);
-                                // Si es una imagen muy nublada no la guardamos.
-                                if ( appConfig.configData().CLOUDSCORE_MAX.compareTo(e.getCloudScore()) >= 0) {
-                                    e.setCoordinate(eas.getCoordinate());
-                                    e.setDim(appConfig.configData().DIMENSION);
-                                    gi = new GeoImage();
-                                    gi.setEarthImage(e);
-                                    gi.setFilterOption(filterOptionRepository.findByName("RAW"));
-                                    geoImageRepository.save(gi);
-                                    this.sendGeoImageToQueue(gi, appConfig.configData().TASK_QUEUE_NAME, resourceClientQueue);
-                                    this.sendGeoImageToQueue(gi, resourceClientQueue, "");
-                                } else {
-                                    logger.info(" Img is being ignored. The cloud_score is " +  e.getCloudScore());
+        String beginDateStr = (beginDate != null) ? df.format(beginDate): null;
+        String endDateStr = (endDate != null) ? df.format(endDate): null;
+        coordinates = transformBoxToList(coordinates);
+        logger.info(" - Process Order Arrived - Quantity: " + coordinates.size() + ", BeginDate: " + beginDateStr + ", EndDate:  " + endDateStr);
+        for (Coordinate coord : coordinates) {
+            Runnable runnable = () -> {
+                try {
+                    EarthAssets eas = nasaApi.getEarthAssets(coord.getLatitude(), coord.getLongitude(), beginDateStr, endDateStr);
+                    if (eas.getCount() > 0) {
+                        eas.setCoordinate(coord);
+                        for (int i = 0; i < eas.getCount(); i++) {
+                            int finalI = i;
+                            Runnable runnable2 = () -> {
+                                try {
+                                    EarthAssets.EarthAsset ea = eas.getResults().get(finalI);
+                                    GeoImage gi = new GeoImage();
+                                    if (null == (gi = this.findGeoImage(
+                                            eas.getCoordinate().getLatitude(),
+                                            eas.getCoordinate().getLongitude(),
+                                            timestamp.parse(ea.getDate()),
+                                            "RAW"))) {
+                                        EarthImage e = nasaApi.getEarthImage(eas.getCoordinate().getLatitude(), eas.getCoordinate().getLongitude(), appConfig.configData().DIMENSION, ea.getDate().split("T")[0], CLOUDSCORE);
+                                        // Si es una imagen muy nublada no la guardamos.
+                                        if (appConfig.configData().CLOUDSCORE_MAX.compareTo(e.getCloudScore()) >= 0) {
+                                            e.setCoordinate(eas.getCoordinate());
+                                            e.setDim(appConfig.configData().DIMENSION);
+                                            gi = new GeoImage();
+                                            gi.setEarthImage(e);
+                                            gi.setFilterOption(filterOptionRepository.findByName("RAW"));
+                                            geoImageRepository.save(gi);
+                                            this.sendGeoImageToQueue(gi, appConfig.configData().TASK_QUEUE_NAME, resourceClientQueue);
+                                            this.sendGeoImageToQueue(gi, resourceClientQueue, "");
+                                        } else {
+                                            logger.info(" Img is being ignored. The cloud_score is " + e.getCloudScore());
+                                        }
+                                    } else {
+                                        this.sendGeoImageToQueue(gi, resourceClientQueue, "");
+                                        this.sendGeoImageToQueue(gi, resultClientQueue, "");
+                                    }
+                                } catch(GeoException | ParseException e){
+                                    Thread t = Thread.currentThread();
+                                    t.getUncaughtExceptionHandler().uncaughtException(t, e);
+                                } catch(IOException e){
+                                    e.printStackTrace();
                                 }
-                            } else {
-                                this.sendGeoImageToQueue(gi, resourceClientQueue, "");
-                                this.sendGeoImageToQueue(gi, resultClientQueue, "");
-                            }
-                        } catch (IOException e) {
-                            e.printStackTrace();
+                            };
+                            // Inicia Thread
+                            pool.execute(runnable2);
                         }
                     }
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
-            }
-
-        } catch (IOException e) {
-            throw new GeoException(e.getMessage());
+            };
+            // Inicia Thread
+            pool.execute(runnable);
         }
     }
 

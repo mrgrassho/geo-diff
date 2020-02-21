@@ -236,7 +236,7 @@ GeoImage.addElementToSlider = function(groupDate) {
 GeoImage.resetSlider = function() {
   if (GeoImage.initSlider_status) {
     let div = document.getElementById('geometry-type-100');
-    div.setAttribute('style', 'display: flex');
+    div.setAttribute('style', 'display: block');
     let ol = document.getElementById('results-dates-100');
     ol.parentNode.removeChild(ol);
     GeoImage.initSlider_status = false;
