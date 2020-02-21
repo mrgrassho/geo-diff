@@ -168,10 +168,11 @@ GeoImage.onConnectRabbitMQ = function(x) {
 }
 
 GeoImage.onErrorRabbitMQ =  function(frame) {
-  alert("Request coordinates are NOT available.");
+  alert("[!] RabbitMQ server is NOT available.");
   console.log(' [!] Error: ', frame);
   let map = document.getElementById('map');
   map.innerHTML = '';
+  GeoImage.resetSlider();
   GeoImage.init();
 };
 
@@ -228,6 +229,17 @@ GeoImage.addElementToSlider = function(groupDate) {
       }
     }
     list.insertBefore(li, elem);
+  }
+}
+
+
+GeoImage.resetSlider = function() {
+  if (GeoImage.initSlider_status) {
+    let div = document.getElementById('geometry-type-100');
+    div.setAttribute('style', 'display: flex');
+    let ol = document.getElementById('results-dates-100');
+    ol.parentNode.removeChild(ol);
+    GeoImage.initSlider_status = false;
   }
 }
 

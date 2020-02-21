@@ -117,3 +117,11 @@ A continuación se listan APIs de imagenes satelitales a investigar/probar.
 ###### RabbitMQ	  
 
 [Instalar RabbitMQ](https://www.rabbitmq.com/download.html)
+
+
+
+### GAMA DE colores
+
+### VERDES
+lower_hsv = self.normalize_HSV(np.array([90,0,0]))
+      upper_hsv = self.normalize_HSV(np.array([150,100,100]))

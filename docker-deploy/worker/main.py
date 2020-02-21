@@ -12,7 +12,8 @@ def main():
     amqp_url = os.environ['AMQP_URL']
     task_queue = os.environ['TASK_QUEUE']
     result_xchg = os.environ['RES_XCHG']
-    worker = GeoDiffWorker(amqp_url, task_queue, result_xchg, debug=True)
+    keep_alive_queue = os.environ['KEEP_ALIVE_QUEUE']
+    worker = GeoDiffWorker(amqp_url, task_queue, result_xchg, keep_alive_queue, debug=True)
     worker.start()
 
 

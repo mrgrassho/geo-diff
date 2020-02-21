@@ -246,8 +246,8 @@ public class GeoDiffService {
         }
         logger.info(" Centered coords -> " + coords);
         ArrayList<Coordinate> tmp_list = new ArrayList<Coordinate>();
-        for (double i = coords.get(0).getLongitude(); i <= coords.get(1).getLongitude(); i = i + appConfig.configData().DIMENSION){
-            for (double j = coords.get(0).getLatitude(); j <= coords.get(3).getLatitude(); j = j + appConfig.configData().DIMENSION){
+        for (double i = coords.get(0).getLongitude(); i <= coords.get(1).getLongitude() + appConfig.configData().DIMENSION; i = i + appConfig.configData().DIMENSION){
+            for (double j = coords.get(0).getLatitude(); j <= coords.get(3).getLatitude() + appConfig.configData().DIMENSION; j = j + appConfig.configData().DIMENSION){
                 tmp_list.add(new Coordinate(j, i));
             }
         }

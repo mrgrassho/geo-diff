@@ -19,7 +19,7 @@ import functools
 import math
 import http.client
 import mimetypes
-
+from datetime import datetime
 
 class GeoDiffWorker(object):
     """docstring for GeoDiffWorker."""
@@ -30,10 +30,12 @@ class GeoDiffWorker(object):
     GOOGLE_MAX_SAT = 100
     GOOGLE_MAX_VAL = 100
 
-    def __init__(self, amqp_url, task_queue, res_xchg, prefetch_count=1, reconection_time=10, debug=True):
+    def __init__(self, amqp_url, task_queue, res_xchg, keep_alive_queue, prefetch_count=1, reconection_time=10, debug=True):
+        self._id_worker = self.id_generator()
         self._amqp_url = amqp_url
         self._task_queue = task_queue
         self._res_xchg = res_xchg
+        self._keep_alive_queue = keep_alive_queue
         self._channel = None
         self._debug = debug
         self._connection = None
@@ -224,9 +226,9 @@ class GeoDiffWorker(object):
         return img
 
 
-    def send(self, message, reply_to):
+    def send_to_xchg(self, message, reply_to):
         """
-        Send message to RabbitMQ Queue.
+        Send message to RabbitMQ Exchange.
         """
         json_msg = json.dumps(message)
         self._channel.exchange_declare(exchange=self._res_xchg, exchange_type='fanout')
@@ -241,6 +243,24 @@ class GeoDiffWorker(object):
         )
         if (self._debug):
             print(" [x] Image sent to XCHG: {} - Body: {} ".format(self._res_xchg, json_msg[:140]))
+
+
+    def send_to_queue(self, message, queue):
+        """
+        Send message to RabbitMQ Queue.
+        """
+        json_msg = json.dumps(message)
+        self._channel.queue_declare(queue=queue, durable=True)
+        self._channel.basic_publish(
+            exchange='',
+            routing_key=queue,
+            body=json_msg,
+            properties=pika.BasicProperties(
+                delivery_mode=2,  # make message persistent
+            )
+        )
+        if (self._debug):
+            print(" [x] Image sent to {} - Body: {} ".format(queue, json_msg[:10]))
 
 
     def callback_task_queue(self, _unused_channel, delivery, properties, body):
@@ -264,7 +284,10 @@ class GeoDiffWorker(object):
         if (self._debug):
             print(" [x] Job done! Image processing took {} seconds.".format(time.time() - start_time))
         self._channel.basic_ack(delivery_tag=delivery.delivery_tag)
-        self.send(data, properties.reply_to)
+        self.send_to_xchg(data, properties.reply_to)
+        #  send keep alive message to admin worker.
+        message_ka = {'id':self._id_worker,'timestamp':str(datetime.now())}
+        self.send_to_queue(message_ka,self._keep_alive_queue)
 
 
     def on_open_connection(self, _unused_frame):
