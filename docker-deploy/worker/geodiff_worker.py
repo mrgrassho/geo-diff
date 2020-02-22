@@ -13,6 +13,7 @@ import functools
 import http.client
 import mimetypes
 from datetime import datetime
+import concurrent.futures
 
 class GeoDiffWorker(object):
     """docstring for GeoDiffWorker."""
@@ -213,21 +214,9 @@ class GeoDiffWorker(object):
         if (self._debug):
             print(" [x] Image sent to {} - Body: {} ".format(queue, json_msg[:10]))
 
-
-    def callback_task_queue(self, _unused_channel, delivery, properties, body):
-        """
-        Callback triggered when message is received.
-        """
-        if (self._debug):
-            print(" [x] Received - Body: {}".format(body[:140]))
-        start_time = time.time()
-        data = json.loads(body)
-        # Descargamos la imagen si no esta
-        if (not 'rawImage' in data['earthImage']):
-            data['earthImage']['rawImage'] = self.download_img(data['earthImage']['url'])
-
+    def process_image(self, data, filter):
         process_time = time.time()
-        filteredImage = self.applyFilter(data['earthImage']['rawImage'])
+        filteredImage = self.applyFilter(data['earthImage']['rawImage'], filter)
         #geoOutput = self.pngToGeoJson(filteredImage)
         if (self._debug):
             print(" [+] Filter applied! Process took {} seconds.".format(time.time() - process_time))
@@ -242,7 +231,34 @@ class GeoDiffWorker(object):
         filteredImage = self.set_transparent_background(filteredImage)
         if (self._debug):
             print(" [+] Set Background done! Process took {} seconds.".format(time.time() - process_time))
-        data['vectorImage'] = self.img_to_base64(filteredImage)
+        return {
+            'id': self.id_generator(),
+            'filterName': filter.lower(),
+            'vectorImage': self.img_to_base64(filteredImage)
+        }
+
+
+    def callback_task_queue(self, _unused_channel, delivery, properties, body):
+        """
+        Callback triggered when message is received.
+        """
+        if (self._debug):
+            print(" [x] Received - Body: {}".format(body[:140]))
+        start_time = time.time()
+        data = json.loads(body)
+        # Descargamos la imagen si no esta
+        if (not 'rawImage' in data['earthImage']):
+            data['earthImage']['rawImage'] = self.download_img(data['earthImage']['url'])
+
+        filters = ['DEFORESTATION', 'FLOODING', 'DROUGHT']
+        return_values = list()
+
+        for filter in filters:
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(self.process_image, data, filter)
+                return_values.append(future.result())
+
+        data['filteredImages'] = return_values
         if (self._debug):
             print(" [x] Job done! Image processing took {} seconds.".format(time.time() - start_time))
         self._channel.basic_ack(delivery_tag=delivery.delivery_tag)

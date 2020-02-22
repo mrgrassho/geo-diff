@@ -4,6 +4,8 @@ import com.nasa.model.earth.EarthImage;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.util.ArrayList;
+
 @Document
 public class GeoImage {
 
@@ -12,11 +14,11 @@ public class GeoImage {
 
     private EarthImage earthImage;
 
-    private FilterOption filterOption;
+    private ArrayList<FilteredImage> filteredImages;
 
-    private String vectorImage;
-
-    public GeoImage () {}
+    public GeoImage () {
+        filteredImages = new ArrayList<>();
+    }
 
     public EarthImage getEarthImage() {
         return earthImage;
@@ -24,14 +26,6 @@ public class GeoImage {
 
     public void setEarthImage(EarthImage earthImage) {
         this.earthImage = earthImage;
-    }
-
-    public FilterOption getFilterOption() {
-        return filterOption;
-    }
-
-    public void setFilterOption(FilterOption filterOption) {
-        this.filterOption = filterOption;
     }
 
     public String getId() {
@@ -42,12 +36,11 @@ public class GeoImage {
         Id = id;
     }
 
-    public String getVectorImage() {
-        return vectorImage;
+    public ArrayList<FilteredImage> getfilteredImages(){
+        return filteredImages;
     }
 
-    public void setVectorImage(String vectorImage) {
-        this.vectorImage = vectorImage;
+    public void setfilteredImages(ArrayList<FilteredImage>  filteredImages){
+        this.filteredImages = filteredImages;
     }
-
 }

@@ -3,7 +3,6 @@ services:
     rabbitmq-server:
         build: ./rabbitmq
         hostname: "rabbitmq-server"
-        restart: always
         environment:
             RABBITMQ_ERLANG_COOKIE: "SWQOKODSQALRPCLNMEQG"
             RABBITMQ_DEFAULT_USER: "guest"
@@ -23,7 +22,6 @@ services:
 
     mongo-server:
         build: ./mongo
-        restart: always
         hostname: "mongo-server"
         ports:
             - "27017:27017"
@@ -45,7 +43,6 @@ services:
 
     worker:
         build: ./worker
-        restart: always
         depends_on:
             - rabbitmq-server
         tty: true

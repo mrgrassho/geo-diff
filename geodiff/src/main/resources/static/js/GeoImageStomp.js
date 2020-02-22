@@ -72,7 +72,9 @@ GeoImage.onResourceMessage = function(d) {
     GeoImage.resources[group] = [];
     GeoImage.color[group] = GeoImage.getRandomColor();
   }
-  geoImage["geoIdVector"]  = GeoImage.getHashCode(geoImage, "VECTOR");
+  for (let p of geoImage["filteredImages"]) {
+    geoImage["geoId_" + p["filterName"]]  = GeoImage.getHashCode(geoImage, p["filterName"]);
+  }
   geoImage["geoIdRaw"]  = GeoImage.getHashCode(geoImage, "RAW");
   GeoImage.resources[group].push(geoImage);
   GeoImage.initSlider();
@@ -95,41 +97,22 @@ GeoImage.intersecPolygons = function (pol1, pol2) {
   return res;
 }
 
-//GeoImage.resultVector = function(item) {
-//  let geoIdVector = GeoImage.getHashCode(item, "VECTOR");
-//  let group = GeoImage.getDateGroup(item["earthImage"]["date"]);
-//  //let multiPolygon = GeoImage.intersecPolygons(GeoImage.feature.getGeometry().getCoordinates(), (new GeoJSON()).readFeatures(item["vectorImage"])[0].getGeometry().getCoordinates());
-//  let multiPolygon = item["vectorImage"];
-//  GeoImage.Layers[geoIdVector] = new VectorLayer({
-//    source: new VectorSource({
-//      features: (new GeoJSON()).readFeatures(multiPolygon)
-//    }),
-//     style: function(feature) {
-//       let style = GeoImage.style.clone();
-//       style.setFill( new Fill({
-//          color: GeoImage.color[group]
-//       }));
-//       return style;
-//     }
-//  });
-//  GeoImage.Map.addLayer(GeoImage.Layers[geoIdVector]);
-//  GeoImage.Layers[geoIdVector].setVisible(false);
-//}
-
 GeoImage.resultVector = function(item) {
   let offset = item["earthImage"]["dim"] / 2;
   let minLatLon = [item["earthImage"]["coordinate"]['longitude']-offset, item["earthImage"]["coordinate"]['latitude']-offset];
   let maxLatLon = [item["earthImage"]["coordinate"]['longitude']+offset, item["earthImage"]["coordinate"]['latitude']+offset];
-  let geoIdRaw = GeoImage.getHashCode(item, "VECTOR");
-  GeoImage.Layers[geoIdRaw] = new ImageLayer({
-    source: new Static({
-      imageLoadFunction : function(image){ image.getImage().src = item["vectorImage"]; },
-      crossOrigin: '',
-      imageExtent: [minLatLon[0], minLatLon[1], maxLatLon[0], maxLatLon[1]]
-    })
-  });
-  GeoImage.Map.addLayer(GeoImage.Layers[geoIdRaw]);
-  GeoImage.Layers[geoIdRaw].setVisible(false);
+  for (let filteredImage of item["filteredImages"]) {
+    let geoIdRaw = GeoImage.getHashCode(item, filteredImage["filterName"]);
+    GeoImage.Layers[geoIdRaw] = new ImageLayer({
+        source: new Static({
+          imageLoadFunction : function(image){ image.getImage().src = filteredImage["vectorImage"]; },
+          crossOrigin: '',
+          imageExtent: [minLatLon[0], minLatLon[1], maxLatLon[0], maxLatLon[1]]
+        })
+      });
+    GeoImage.Map.addLayer(GeoImage.Layers[geoIdRaw]);
+    GeoImage.Layers[geoIdRaw].setVisible(false);
+  }
 }
 
 GeoImage.resultImage = function(item) {
@@ -243,6 +226,18 @@ GeoImage.resetSlider = function() {
   }
 }
 
+GeoImage.ShowLayerIfChecked = function(filter, opacity) {
+  let id = 'geoId_'+filter
+  if (document.getElementById(filter+"-resource").checked) {
+      for (let item of GeoImage.resources[GeoImage.selectedGroup]){
+          if (GeoImage.Layers[item[id]] != null){
+            GeoImage.Layers[item[id]].setVisible(true);
+            GeoImage.Layers[item[id]].setOpacity(opacity);
+          }
+      }
+  }
+}
+
 GeoImage.loadMapCentralized = function (group) {
   let OldGroup = document.getElementById(GeoImage.selectedGroup);
   if (OldGroup != null) OldGroup.classList.remove('selected-group');
@@ -260,20 +255,19 @@ GeoImage.loadMapCentralized = function (group) {
           }
       }
   }
-  if (document.getElementById("vector-resource").checked) {
-      for (let item of GeoImage.resources[GeoImage.selectedGroup]){
-          if (GeoImage.Layers[item['geoIdVector']] != null){
-            GeoImage.Layers[item['geoIdVector']].setVisible(true);
-            GeoImage.Layers[item['geoIdVector']].setOpacity(0.7);
-          }
-      }
-  }
+  GeoImage.ShowLayerIfChecked('deforestation', 1);
+  GeoImage.ShowLayerIfChecked('drought', 1);
+  GeoImage.ShowLayerIfChecked('flooding', 1);
+
   // Cambiamos opacidad
-  if (document.getElementById("raw-resource").checked && document.getElementById("vector-resource").checked) {
+  if (document.getElementById("raw-resource").checked &&
+        (document.getElementById("deforestation-resource").checked ||
+        document.getElementById("drought-resource").checked ||
+        document.getElementById("flooding-resource").checked)) {
       for (let item of GeoImage.resources[GeoImage.selectedGroup]){
-        if (GeoImage.Layers[item['geoIdVector']] != null){
-          GeoImage.Layers[item['geoIdVector']].setOpacity(0.5);
-        }
+        GeoImage.ShowLayerIfChecked('deforestation', 0.5);
+        GeoImage.ShowLayerIfChecked('drought', 0.5);
+        GeoImage.ShowLayerIfChecked('flooding', 0.5);
         if (GeoImage.Layers[item['geoIdRaw']] != null){
           GeoImage.Layers[item['geoIdRaw']].setOpacity(0.5);
         }

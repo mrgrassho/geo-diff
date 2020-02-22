@@ -33,6 +33,7 @@ services:
 
     mongo-express:
         image: mongo-express
+        restart: always
         ports:
             - "8081:8081"
         environment:
@@ -48,6 +49,11 @@ services:
         deploy:
             mode: replicated
             replicas: 6
+            update_config:
+              parallelism: 6
+              delay: 10s
+            restart_policy:
+              condition: on-failure
         environment:
             AMQP_URL: amqp://guest:guest@rabbitmq-server:5672/%2f
             TASK_QUEUE: TASK_QUEUE

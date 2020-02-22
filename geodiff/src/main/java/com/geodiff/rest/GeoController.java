@@ -1,7 +1,7 @@
 package com.geodiff.rest;
 
-import com.geodiff.AppConfig;
-import com.geodiff.WebProperties;
+import com.geodiff.config.AppConfig;
+import com.geodiff.config.WebProperties;
 import com.geodiff.dto.Coordinate;
 import com.geodiff.dto.GeoException;
 import com.geodiff.service.GeoDiffService;

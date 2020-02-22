@@ -1,11 +1,10 @@
 package com.geodiff.service;
 
 
-import com.geodiff.AppConfig;
+import com.geodiff.config.AppConfig;
 import com.geodiff.dto.Coordinate;
 import com.geodiff.dto.GeoException;
 import com.geodiff.model.GeoImage;
-import com.geodiff.repository.FilterOptionRepository;
 import com.geodiff.repository.GeoImageRepository;
 import com.google.gson.Gson;
 import com.nasa.NasaApi;
@@ -60,8 +59,6 @@ public class GeoDiffService {
     @Autowired
     private GeoImageRepository geoImageRepository;
 
-    @Autowired
-    private FilterOptionRepository filterOptionRepository;
 
     @Autowired
     public AppConfig appConfig;
@@ -82,6 +79,7 @@ public class GeoDiffService {
             Runnable runnable = () -> {
                 try {
                     EarthAssets eas = nasaApi.getEarthAssets(coord.getLatitude(), coord.getLongitude(), beginDateStr, endDateStr);
+                    Thread.sleep(200);
                     if (eas.getCount() > 0) {
                         eas.setCoordinate(coord);
                         for (int i = 0; i < eas.getCount(); i++) {
@@ -95,6 +93,7 @@ public class GeoDiffService {
                                             eas.getCoordinate().getLongitude(),
                                             timestamp.parse(ea.getDate()),
                                             "RAW"))) {
+                                        Thread.sleep(200);
                                         EarthImage e = nasaApi.getEarthImage(eas.getCoordinate().getLatitude(), eas.getCoordinate().getLongitude(), appConfig.configData().DIMENSION, ea.getDate().split("T")[0], CLOUDSCORE);
                                         // Si es una imagen muy nublada no la guardamos.
                                         if (appConfig.configData().CLOUDSCORE_MAX.compareTo(e.getCloudScore()) >= 0) {
@@ -102,7 +101,6 @@ public class GeoDiffService {
                                             e.setDim(appConfig.configData().DIMENSION);
                                             gi = new GeoImage();
                                             gi.setEarthImage(e);
-                                            gi.setFilterOption(filterOptionRepository.findByName("RAW"));
                                             geoImageRepository.save(gi);
                                             this.sendGeoImageToQueue(gi, appConfig.configData().TASK_QUEUE_NAME, resourceClientQueue);
                                             this.sendGeoImageToQueue(gi, resourceClientQueue, "");
@@ -118,6 +116,8 @@ public class GeoDiffService {
                                     t.getUncaughtExceptionHandler().uncaughtException(t, e);
                                 } catch(IOException e){
                                     e.printStackTrace();
+                                } catch (InterruptedException e) {
+                                    e.printStackTrace();
                                 }
                             };
                             // Inicia Thread
@@ -125,6 +125,8 @@ public class GeoDiffService {
                         }
                     }
                 } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
             };
@@ -194,7 +196,7 @@ public class GeoDiffService {
             GeoImage g = gson.fromJson(message, GeoImage.class);
             GeoImage gi = geoImageRepository.findByIdd(g.getId());
             if (gi != null) {
-                gi.setVectorImage(g.getVectorImage());
+                gi.setfilteredImages(g.getfilteredImages());
                 gi.getEarthImage().setRawImage(g.getEarthImage().getRawImage());
                 geoImageRepository.save(gi);
                 this.sendGeoImageToQueue(gi, delivery.getProperties().getReplyTo(), "");
