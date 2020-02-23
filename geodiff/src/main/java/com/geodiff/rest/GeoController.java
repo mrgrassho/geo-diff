@@ -60,6 +60,18 @@ public class GeoController {
     }
 
     /**
+     *  Rate Actual de NASA API
+     *
+     *  @return                     Nombre de las Colas y parametros para conectarse a RabbitMQ.
+     * */
+    @GetMapping("/rate")
+    @ResponseBody
+    @ResponseStatus(HttpStatus.OK)
+    public HashMap<String, String> getRateAPI() throws IOException {
+        return geoDiffService.getRate();
+    }
+
+    /**
      * Carga un nuevo mapa.
      *
      *  @param    beginDate         FechaDesde >= fecha.
@@ -77,7 +89,7 @@ public class GeoController {
             @DateTimeFormat(pattern = "yyyy-MM-dd") Date endDate,
             @RequestParam(name = "resource_queue", required = true) String resourceClientQueue,
             @RequestParam(name = "results_queue", required = true) String resultClientQueue,
-            @RequestBody ArrayList<Coordinate> coordinates) throws IOException, GeoException, ParseException {
+            @RequestBody ArrayList<Coordinate> coordinates) throws IOException, GeoException, ParseException, InterruptedException {
         logger.info(" [+] Request arrived. Coordinates: " + coordinates );
         geoDiffService.createMapOptimized(coordinates, beginDate, endDate, resourceClientQueue, resultClientQueue);
     }

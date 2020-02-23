@@ -1,5 +1,7 @@
 package com.geodiff.dto;
 
+import java.util.Locale;
+
 public class Coordinate {
     private Double latitude;
     private Double longitude;
@@ -7,8 +9,8 @@ public class Coordinate {
     public Coordinate() { }
 
     public Coordinate(Double latitude,Double longitude){
-        this.latitude = Double.parseDouble(String.format("%.3f", latitude));
-        this.longitude = Double.parseDouble(String.format("%.3f", longitude));
+        this.latitude = Double.parseDouble(String.format(Locale.US,"%.3f", latitude));
+        this.longitude = Double.parseDouble(String.format(Locale.US,"%.3f", longitude));
     }
 
     public Double getLatitude() {

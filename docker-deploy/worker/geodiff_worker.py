@@ -250,15 +250,15 @@ class GeoDiffWorker(object):
         if (not 'rawImage' in data['earthImage']):
             data['earthImage']['rawImage'] = self.download_img(data['earthImage']['url'])
 
-        filters = ['DEFORESTATION', 'FLOODING', 'DROUGHT']
-        return_values = list()
+        if (data['earthImage']['cloud_score'] < 0.3):
+            filters = ['DEFORESTATION', 'FLOODING', 'DROUGHT']
+            return_values = list()
+            for filter in filters:
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    future = executor.submit(self.process_image, data, filter)
+                    return_values.append(future.result())
+            data['filteredImages'] = return_values
 
-        for filter in filters:
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                future = executor.submit(self.process_image, data, filter)
-                return_values.append(future.result())
-
-        data['filteredImages'] = return_values
         if (self._debug):
             print(" [x] Job done! Image processing took {} seconds.".format(time.time() - start_time))
         self._channel.basic_ack(delivery_tag=delivery.delivery_tag)

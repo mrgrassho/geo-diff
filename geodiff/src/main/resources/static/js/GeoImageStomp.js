@@ -72,8 +72,10 @@ GeoImage.onResourceMessage = function(d) {
     GeoImage.resources[group] = [];
     GeoImage.color[group] = GeoImage.getRandomColor();
   }
-  for (let p of geoImage["filteredImages"]) {
-    geoImage["geoId_" + p["filterName"]]  = GeoImage.getHashCode(geoImage, p["filterName"]);
+  if (geoImage["filteredImages"] != null) {
+      for (let p of geoImage["filteredImages"]) {
+        geoImage["geoId_" + p["filterName"]]  = GeoImage.getHashCode(geoImage, p["filterName"]);
+      }
   }
   geoImage["geoIdRaw"]  = GeoImage.getHashCode(geoImage, "RAW");
   GeoImage.resources[group].push(geoImage);
@@ -101,19 +103,22 @@ GeoImage.resultVector = function(item) {
   let offset = item["earthImage"]["dim"] / 2;
   let minLatLon = [item["earthImage"]["coordinate"]['longitude']-offset, item["earthImage"]["coordinate"]['latitude']-offset];
   let maxLatLon = [item["earthImage"]["coordinate"]['longitude']+offset, item["earthImage"]["coordinate"]['latitude']+offset];
-  for (let filteredImage of item["filteredImages"]) {
-    let geoIdRaw = GeoImage.getHashCode(item, filteredImage["filterName"]);
-    GeoImage.Layers[geoIdRaw] = new ImageLayer({
-        source: new Static({
-          imageLoadFunction : function(image){ image.getImage().src = filteredImage["vectorImage"]; },
-          crossOrigin: '',
-          imageExtent: [minLatLon[0], minLatLon[1], maxLatLon[0], maxLatLon[1]]
-        })
-      });
-    GeoImage.Map.addLayer(GeoImage.Layers[geoIdRaw]);
-    GeoImage.Layers[geoIdRaw].setVisible(false);
+  if (item["filteredImages"] != null) {
+      for (let filteredImage of item["filteredImages"]) {
+        let geoIdRaw = GeoImage.getHashCode(item, filteredImage["filterName"]);
+        GeoImage.Layers[geoIdRaw] = new ImageLayer({
+            source: new Static({
+              imageLoadFunction : function(image){ image.getImage().src = filteredImage["vectorImage"]; },
+              crossOrigin: '',
+              imageExtent: [minLatLon[0], minLatLon[1], maxLatLon[0], maxLatLon[1]]
+            })
+          });
+        GeoImage.Map.addLayer(GeoImage.Layers[geoIdRaw]);
+        GeoImage.Layers[geoIdRaw].setVisible(false);
+      }
   }
 }
+
 
 GeoImage.resultImage = function(item) {
   let offset = item["earthImage"]["dim"] / 2;
@@ -179,6 +184,30 @@ GeoImage.getHashCode = function(item, args){
   }
   let str = JSON.stringify(item["earthImage"]["coordinate"]) + item["earthImage"]["date"] + args;
   return genrateHashCode(str);
+}
+
+
+
+function ajaxCallGetRate() {
+    let url = GeoImage.baseURL + "/rate";
+    Ajax.request( "GET", url, {}, function (xhr) {
+                    // LLEGA EL RECURSO Y SE AGREGA LA CAPA.
+                      var obj = JSON.parse(xhr);
+                      if (xhr === "{}") {
+                          console.log("[!] Rate Object are NOT available. Request: " + url);
+                      } else {
+                          console.log(" Rate Object available. RateLimitRemaining: " + obj['RateLimitRemaining']);
+                          e = document.getElementById('rate-api');
+                          e.innerHTML = '';
+                          h = document.createElement('h4');
+                          h.innerText =  "Rate: " + obj['RateLimitRemaining'].toString() +"/"+ obj['RateLimit'].toString();
+                          e.appendChild(h);
+                      }
+    });
+}
+
+GeoImage.getRate = function () {
+  setInterval(ajaxCallGetRate, 10000); //Cada 10 segundos
 }
 
 GeoImage.initSlider = function() {
@@ -287,6 +316,7 @@ GeoImage.init = function (baseURL) {
   GeoImage.initSlider_status = false;
   console.log("Setting baseURL to " + GeoImage.baseURL);
   GeoImage.initClient();
+  GeoImage.getRate();
 
   var raster = new TileLayer({
     source: new OSM()
@@ -321,7 +351,7 @@ GeoImage.init = function (baseURL) {
     );
     GeoImage.feature.getGeometry().setCoordinates([newCoords]);
     let coordConverted = newCoords.map( function(co) {
-        return {'latitude': co[1], 'longitude': co[0]};
+        return {'latitude': parseFloat(co[1].toString().replace(',','.')), 'longitude': parseFloat(co[0].toString().replace(',','.'))};
     });
     GeoImage.requestNewMap(coordConverted);
   });
