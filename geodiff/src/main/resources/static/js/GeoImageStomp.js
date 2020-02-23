@@ -68,6 +68,7 @@ GeoImage.getDateGroup =  function(date_str) {
 GeoImage.onResourceMessage = function(d) {
   let geoImage = JSON.parse(d.body);
   let group = GeoImage.getDateGroup(geoImage["earthImage"]["date"]);
+  console.log("Read from resource queue image with date "+ group);
   if (GeoImage.resources[group] == null) {
     GeoImage.resources[group] = [];
     GeoImage.color[group] = GeoImage.getRandomColor();
@@ -314,7 +315,8 @@ GeoImage.init = function (baseURL) {
   GeoImage.resourceClientQueue = ""
   GeoImage.resultClientQueue = ""
   GeoImage.initSlider_status = false;
-  console.log("Setting baseURL to " + GeoImage.baseURL);
+  //console.log('La fecha es > '+ moment().format('YYYY MM DD')); //prueba libreria moment.
+  console.log("Setting baseURL to" + GeoImage.baseURL);
   GeoImage.initClient();
   GeoImage.getRate();
 
