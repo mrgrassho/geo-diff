@@ -81,13 +81,10 @@ services:
         depends_on:
             - rabbitmq-server
             - mongo-server
-<<<<<<< Updated upstream
         deploy:
             restart_policy:
               condition: on-failure
         tty: true
-=======
->>>>>>> Stashed changes
         volumes:
             - './backend:/backend'
 

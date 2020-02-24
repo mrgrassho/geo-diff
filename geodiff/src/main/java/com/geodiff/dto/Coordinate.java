@@ -9,13 +9,12 @@ public class Coordinate {
     public Coordinate() { }
 
     public Coordinate(Double latitude,Double longitude){
-<<<<<<< Updated upstream
+
         this.latitude = Double.parseDouble(String.format(Locale.US,"%.3f", latitude));
         this.longitude = Double.parseDouble(String.format(Locale.US,"%.3f", longitude));
-=======
-        this.latitude = latitude;
-        this.longitude = longitude;
->>>>>>> Stashed changes
+        //this.latitude = latitude;
+        //this.longitude = longitude;
+
     }
 
     public Double getLatitude() {
