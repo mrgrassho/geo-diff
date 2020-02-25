@@ -11,4 +11,4 @@ RUN apk update \
     && conda install pandas \
     && pip install -r requirements.txt
 
-CMD ["python","admin_worker.py"]
+# CMD ["python","admin_worker.py"]
