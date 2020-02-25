@@ -127,6 +127,11 @@ a.button:hover {
     height: 100%;
 }
 
+.no-recieved {
+   background-color: grey;
+   color: white;
+}
+
 .selected-group {
   background-color: #105bd8;
   color: white;

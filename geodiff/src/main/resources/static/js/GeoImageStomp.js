@@ -356,24 +356,16 @@ GeoImage.addDatesToSlider = function(year,month) {
                 a.innerText = dayX;
                 a.setAttribute('onclick', 'GeoImage.loadMapCentralized(\"'+dates[i]+'\");');
                 a.classList.add('pop-up');
+                //marco las fechas de imagenes que todavia no llegaron.
+                if (GeoImage.Layers[GeoImage.resources[dates[i]]['geoIdRaw']] == null){
+                  a.classList.add('no-recieved');
+                }
                 li.appendChild(a);
                 list.appendChild(li);
                 console.log("[+] Date "+dates[i]+" added on the slider");
           }
       }
   }
-  /*
-    let elem = null
-    for (let child of list.childNodes) {
-      if (child.getElementsByTagName('A')[0].id.localeCompare(a.id) < 0) {
-        elem = child;
-      } else {
-        break;
-      }
-    }
-    list.insertBefore(li, elem);
-    console.log("[+] Added group to Slider >" + groupDate);
-  }*/
 }
 
 
