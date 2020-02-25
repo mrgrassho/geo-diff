@@ -13,7 +13,7 @@ spring.data.rabbitmq.amqp_uri=amqp://guest:guest@rabbitmq-server:5672/%2f
 spring.data.rabbitmq.res_queue=RESULT_QUEUE
 spring.data.rabbitmq.task_queue=TASK_QUEUE
 spring.data.rabbitmq.res_xchg=RESULT_XCHG
-spring.data.rabbitmq.keep_alive_queue=KEEP_ALIVE
+spring.data.rabbitmq.keep_alive_queue=KEEP_ALIVE_QUEUE
 
 # Nasa API
 spring.data.nasa.api_token=6k9ilibCQcusmZl9RRczizWjFC7K0gkviEt2G4Qa

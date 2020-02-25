@@ -5,8 +5,8 @@ WORKDIR /usr/src/boot
 
 COPY application.properties ./config/
 
-COPY geodiff-0.0.1-SNAPSHOT.jar .
+COPY geodiff-0.0.2-SNAPSHOT.jar .
 
 EXPOSE 8080
 
-CMD ["java", "-jar", "geodiff-0.0.1-SNAPSHOT.jar"]
+CMD ["java", "-jar", "geodiff-0.0.2-SNAPSHOT.jar"]

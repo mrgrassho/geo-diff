@@ -3,7 +3,7 @@ services:
     rabbitmq-server:
         build: ./rabbitmq
         image: mrgrassho/geo-diff_rabbitmq-server
-        hostname: "rabbitmq-server"
+        hostname: rabbitmq-server
         environment:
             RABBITMQ_ERLANG_COOKIE: "SWQOKODSQALRPCLNMEQG"
             RABBITMQ_DEFAULT_USER: "guest"
@@ -14,20 +14,18 @@ services:
             - "15674:15674"
             - "5672:5672"
         deploy:
+            mode: global
             restart_policy:
               condition: on-failure
+        volumes:
+            - ./rabbitmq:/var/lib/rabbitmq:rw
         labels:
             NAME: "rabbitmq-server"
-        healthcheck:
-            test: ["CMD", "curl", "-f", "http://localhost:15672"]
-            interval: 30s
-            timeout: 10s
-            retries: 5
 
     mongo-server:
         build: ./mongo
         image: mrgrassho/geo-diff_mongo-server
-        hostname: "mongo-server"
+        hostname: mongo-server
         ports:
             - "27017:27017"
         deploy:
