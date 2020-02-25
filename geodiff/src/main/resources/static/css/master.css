@@ -62,6 +62,7 @@ a.button:hover {
 .pop-up:hover {
     background-color: #13b706;
     color: white;
+    cursor: pointer;
 }
 
 .pop-up:hover::before {
@@ -96,17 +97,34 @@ a.button:hover {
 
 .box {
     margin-top: 1%;
-    padding: 2%;
+    margin-bottom: 2%;
+    padding: 1%;
+    height: 70px;
     background-color: #d1dcda;
 }
 
-#results-dates-100  > div {
+/*Para los divs de años meses y dias*/
+#results-dates-100  > div:not(.path) {
     margin: 0% 0.5%;
+    margin-top: 25px;
+}
+
+#results-dates-100  .path {
+    display: block;
+    position: absolute;
+    width: 76%;
+    height: 20;
+    border-bottom: 2px solid;
+}
+
+#results-dates-100  .path a:hover{
+    cursor: pointer;
+    background-color: #13b706;
 }
 
 #results-dates-100 {
     display: flex;
-    border-top: 2px solid;
+    height: 100%;
 }
 
 .selected-group {
