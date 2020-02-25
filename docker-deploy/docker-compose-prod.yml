@@ -1,7 +1,7 @@
 version: "3.2"
 services:
     rabbitmq-server:
-        build: ./rabbitmq
+        # build: ./rabbitmq
         image: mrgrassho/geo-diff_rabbitmq-server:latest
         hostname: rabbitmq-server
         environment:
@@ -23,7 +23,7 @@ services:
             NAME: "rabbitmq-server"
 
     mongo-server:
-        build: ./mongo
+        # build: ./mongo
         image: mrgrassho/geo-diff_mongo-server:latest
         hostname: mongo-server
         ports:
@@ -41,7 +41,7 @@ services:
         image: mongo-express
         restart: always
         ports:
-            - "8081:8081"
+            - "8086:8081"
         deploy:
             restart_policy:
               condition: on-failure
@@ -51,7 +51,7 @@ services:
             ME_CONFIG_MONGODB_SERVER: mongo-server
 
     worker:
-        build: ./worker
+        # build: ./worker
         image: mrgrassho/geo-diff_worker:latest
         depends_on:
             - rabbitmq-server
@@ -71,11 +71,11 @@ services:
             - './worker:/worker'
 
     backend:
-        build: ./backend
+        # build: ./backend
         image: mrgrassho/geo-diff_backend:latest
         restart: always
         ports:
-            - "8080:8080"
+            - "8087:8080"
         depends_on:
             - rabbitmq-server
             - mongo-server
@@ -85,6 +85,20 @@ services:
         tty: true
         volumes:
             - './backend:/backend'
+
+    admin-worker:
+        build: ./admin-worker
+        image: mrgrassho/geo-diff_admin-worker:latest
+        restart: always
+        depends_on:
+            - rabbitmq-server
+        deploy:
+            restart_policy:
+              condition: on-failure
+        tty: true
+        volumes:
+            - '/var/run/docker.sock:/var/run/docker.sock'
+            - './admin-worker:/admin-worker'
 
 # Host volumes used to store code.
 volumes:
