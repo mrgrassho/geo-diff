@@ -85,7 +85,7 @@ GeoImage.buildNewMapURL = function (beginDate, endDate) {
 //------------------------------------------------------------------------------------------------------------------------------------
 // Establece grupo (fecha) para la imagen/resource recibido
 GeoImage.getDateGroup =  function(date_str) {
-  let day = (parseInt(date_str.split('T')[0].slice(-2)) < 16) ? 1 : 16;
+  let day = (parseInt(date_str.split('T')[0].slice(-2)) < 16) ? "01" : "16";
   return date_str.split('T')[0].slice(0, 8) + day
 }
 
